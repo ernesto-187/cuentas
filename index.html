@@ -182,6 +182,22 @@ body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;posit
 .hDetail{font-size:11px;color:var(--muted);margin-top:3px}
 .hBadge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;background:var(--purple-dim);color:var(--purple-xl);margin-top:5px}
 
+
+/* SPLIT PERSONALIZADO */
+.splitTabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
+.splitTab{padding:9px 4px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--ff);font-size:11px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s}
+.splitTab.on{border-color:var(--purple-l);background:var(--purple-dim);color:var(--purple-xl)}
+.splitRows{display:flex;flex-direction:column;gap:8px}
+.splitRow{background:var(--surface2);border-radius:var(--rx);padding:10px 12px}
+.splitRowTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.splitRowName{font-size:12px;font-weight:700}
+.splitRowResult{font-size:12px;color:var(--muted)}
+.splitInput{width:100%;padding:8px 10px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rx);color:var(--text);font-family:var(--ff);font-size:14px;font-weight:700;text-align:right;-webkit-appearance:none}
+.splitInput:focus{outline:none;border-color:var(--purple-l)}
+.splitTotal{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:var(--rx);margin-top:4px;font-size:12px;font-weight:700}
+.splitTotal.ok{background:rgba(52,211,153,0.1);color:var(--pos)}
+.splitTotal.err{background:rgba(248,113,113,0.1);color:var(--neg)}
+
 /* MEMBER ROW */
 .mRow{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--rx);padding:9px 12px;margin-bottom:6px}
 .mRowName{font-size:13px;font-weight:600}
@@ -369,11 +385,15 @@ body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;posit
     <div class="fGrp"><label class="fLbl">Importe</label><input class="fInp big" id="mImp" type="number" placeholder="0,00" step="0.01" inputmode="decimal"></div>
     <div class="fGrp"><label class="fLbl">Concepto / Lugar</label><input class="fInp" id="mCon" placeholder="Ej: Mercadona, La Pepita..."></div>
     <div class="fGrp"><label class="fLbl">Categoría</label><div class="catGrid" id="mCat"></div></div>
-    <div class="fGrp" id="mSplitGrp"><label class="fLbl">Split</label>
-      <div class="tGroup">
-        <button class="tBtn t-on" id="m50" onclick="APP.setSplit('50%')">50% compartido</button>
-        <button class="tBtn" id="m100" onclick="APP.setSplit('100%')">100% exclusivo</button>
+    <div class="fGrp" id="mSplitGrp">
+      <label class="fLbl">División del gasto</label>
+      <div class="splitTabs">
+        <button class="splitTab on" id="stab0" onclick="APP.setSplitMode(0)">50/50</button>
+        <button class="splitTab"    id="stab1" onclick="APP.setSplitMode(1)">Por %</button>
+        <button class="splitTab"    id="stab2" onclick="APP.setSplitMode(2)">Por monto</button>
       </div>
+      <div class="splitRows" id="splitRows"></div>
+      <div class="splitTotal ok" id="splitTotalRow" style="display:none"></div>
     </div>
     <button class="btnMain" onclick="APP.saveGasto()">Guardar gasto</button>
     <button class="btnDanger" id="mDelBtn" onclick="APP.deleteGasto()" style="display:none">Eliminar gasto</button>
@@ -453,7 +473,7 @@ const S = {
   aeG:{}, aeH:{}, casaG:{}, casaH:{}, grupos:{},
   curGrp: null,
   gMode: 'ae', gEditId: null,
-  gPersona: 'andrea', gSplit: '50%', gCat: 'Restaurantes',
+  gPersona: 'andrea', gSplit: '50%', gSplitMode: 0, gSplitData: null, gCat: 'Restaurantes',
   ngEmoji: '✈️', ngMembers: ['Andrea','Ernesto'],
   aeFilter: 'todos', casaFilter: 'todos'
 };
@@ -714,9 +734,14 @@ const APP = {
     document.getElementById('mCon').value = '';
     document.getElementById('mGastoT').textContent = mode==='casa' ? 'Nuevo adelanto' : editId ? 'Editar gasto' : 'Nuevo gasto';
     document.getElementById('mDelBtn').style.display = editId ? 'block' : 'none';
-    document.getElementById('mSplitGrp').style.display = (mode==='casa'||mode==='grp') ? 'none' : 'block';
+    const showSplit = true; // always show split
+    document.getElementById('mSplitGrp').style.display = 'block';
+    S.gSplitMode = 0; S.gSplitData = null;
+    [0,1,2].forEach(i => document.getElementById('stab'+i).classList.toggle('on', i===0));
     document.getElementById('mGasto').classList.add('open');
     setTimeout(() => document.getElementById('mImp').focus(), 300);
+    // Rebuild split when importe changes
+    document.getElementById('mImp').oninput = () => APP.buildSplitRows();
   },
 
   buildGastoModal(members) {
@@ -725,6 +750,8 @@ const APP = {
       const cls = k===S.gPersona ? ('tBtn '+(k==='andrea'?'t-and':k==='ernesto'?'t-er':'t-on')) : 'tBtn';
       return `<button class="${cls}" onclick="APP.setPersona('${k}')">${m}</button>`;
     }).join('');
+    // Rebuild split rows when modal is built
+    setTimeout(() => APP.buildSplitRows(), 50);
     document.getElementById('mCat').innerHTML = CATS.map(c =>
       `<button class="catBtn ${c.id===S.gCat?'on':''}" onclick="APP.setCat('${c.id}')"><span class="cIcon">${c.ic}</span>${c.id}</button>`
     ).join('');
@@ -738,10 +765,143 @@ const APP = {
     });
   },
 
-  setSplit(s) {
-    S.gSplit = s;
-    document.getElementById('m50').className = 'tBtn '+(s==='50%'?'t-on':'');
-    document.getElementById('m100').className = 'tBtn '+(s==='100%'?'t-on':'');
+  // SPLIT MODE: 0=50/50, 1=pct, 2=monto
+  setSplitMode(mode) {
+    S.gSplitMode = mode;
+    [0,1,2].forEach(i => {
+      document.getElementById('stab'+i).classList.toggle('on', i===mode);
+    });
+    APP.buildSplitRows();
+  },
+
+  buildSplitRows() {
+    const members = APP.getSplitMembers();
+    const imp = parseFloat(document.getElementById('mImp').value) || 0;
+    const mode = S.gSplitMode || 0;
+    const rowsEl = document.getElementById('splitRows');
+    const totalRow = document.getElementById('splitTotalRow');
+
+    if (mode === 0) {
+      // 50/50 — show info only
+      rowsEl.innerHTML = members.map(m => {
+        const share = members.length > 0 ? imp / members.length : 0;
+        return `<div class="splitRow">
+          <div class="splitRowTop">
+            <span class="splitRowName">${m}</span>
+            <span class="splitRowResult">${fmt(share)}</span>
+          </div>
+        </div>`;
+      }).join('');
+      totalRow.style.display = 'none';
+      // Init equal splits
+      S.gSplitData = {};
+      members.forEach(m => S.gSplitData[m] = 1/members.length);
+    } else if (mode === 1) {
+      // By percentage
+      rowsEl.innerHTML = members.map((m,i) => {
+        const pct = S.gSplitData && S.gSplitData[m] !== undefined
+          ? Math.round(S.gSplitData[m]*100)
+          : Math.round(100/members.length);
+        const share = imp * pct / 100;
+        return `<div class="splitRow">
+          <div class="splitRowTop">
+            <span class="splitRowName">${m}</span>
+            <span class="splitRowResult" id="res_${i}">${fmt(share)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="splitInput" id="pct_${i}" type="number" value="${pct}" min="0" max="100" step="1"
+              oninput="APP.onPctChange(${i})" style="width:80px">
+            <span style="color:var(--muted);font-size:13px">%</span>
+          </div>
+        </div>`;
+      }).join('');
+      APP.updateSplitTotal(members, 'pct');
+      totalRow.style.display = 'flex';
+    } else {
+      // By amount
+      rowsEl.innerHTML = members.map((m,i) => {
+        const amt = S.gSplitData && S.gSplitData[m] !== undefined
+          ? (S.gSplitData[m] * imp).toFixed(2)
+          : (imp/members.length).toFixed(2);
+        return `<div class="splitRow">
+          <div class="splitRowTop">
+            <span class="splitRowName">${m}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="splitInput" id="amt_${i}" type="number" value="${amt}" min="0" step="0.01"
+              oninput="APP.onAmtChange(${i})">
+            <span style="color:var(--muted);font-size:13px">€</span>
+          </div>
+        </div>`;
+      }).join('');
+      APP.updateSplitTotal(members, 'amt');
+      totalRow.style.display = 'flex';
+    }
+  },
+
+  getSplitMembers() {
+    const mode = S.gMode;
+    if (mode === 'grp' && S.curGrp && S.grupos[S.curGrp]) {
+      return S.grupos[S.curGrp].miembros || ['Andrea','Ernesto'];
+    }
+    return ['Andrea','Ernesto'];
+  },
+
+  onPctChange(idx) {
+    const members = APP.getSplitMembers();
+    const imp = parseFloat(document.getElementById('mImp').value) || 0;
+    const pcts = members.map((_,i) => parseFloat(document.getElementById('pct_'+i).value)||0);
+    const total = pcts.reduce((s,v)=>s+v,0);
+    // Update result labels
+    members.forEach((_,i) => {
+      const el = document.getElementById('res_'+i);
+      if (el) el.textContent = fmt(imp * pcts[i] / 100);
+    });
+    // Store as fractions
+    S.gSplitData = {};
+    members.forEach((m,i) => S.gSplitData[m] = pcts[i]/100);
+    APP.updateSplitTotal(members, 'pct');
+  },
+
+  onAmtChange(idx) {
+    const members = APP.getSplitMembers();
+    const imp = parseFloat(document.getElementById('mImp').value) || 0;
+    const amts = members.map((_,i) => parseFloat(document.getElementById('amt_'+i).value)||0);
+    // Store as fractions
+    S.gSplitData = {};
+    members.forEach((m,i) => S.gSplitData[m] = imp > 0 ? amts[i]/imp : 0);
+    APP.updateSplitTotal(members, 'amt');
+  },
+
+  updateSplitTotal(members, type) {
+    const imp = parseFloat(document.getElementById('mImp').value) || 0;
+    const totalRow = document.getElementById('splitTotalRow');
+    let sum = 0;
+    if (type === 'pct') {
+      sum = members.reduce((_,i) => _ + (parseFloat(document.getElementById('pct_'+members.indexOf(members[i]))||0) || 0), 0);
+      // Recalc properly
+      sum = members.map((_,i) => parseFloat(document.getElementById('pct_'+i).value)||0).reduce((a,b)=>a+b,0);
+      const ok = Math.abs(sum-100) < 0.5;
+      totalRow.className = 'splitTotal '+(ok?'ok':'err');
+      totalRow.textContent = ok ? '✓ Suma: 100%' : '⚠ Suma: '+sum.toFixed(0)+'% (debe ser 100%)';
+    } else {
+      sum = members.map((_,i) => parseFloat(document.getElementById('amt_'+i).value)||0).reduce((a,b)=>a+b,0);
+      const ok = Math.abs(sum-imp) < 0.01;
+      totalRow.className = 'splitTotal '+(ok?'ok':'err');
+      totalRow.textContent = ok ? '✓ Suma: '+fmt(sum) : '⚠ Suma: '+fmt(sum)+' de '+fmt(imp);
+    }
+  },
+
+  getSplitDataForSave() {
+    // Returns {persona: fraction} for all members
+    const members = APP.getSplitMembers();
+    const mode = S.gSplitMode || 0;
+    if (mode === 0) {
+      const data = {};
+      members.forEach(m => data[m] = 1/members.length);
+      return data;
+    }
+    return S.gSplitData || (() => { const d={}; members.forEach(m=>d[m]=1/members.length); return d; })();
   },
 
   setCat(c) {
@@ -759,7 +919,23 @@ const APP = {
     if (!con) { APP.toast('Escribe el concepto','err'); return; }
     if (isNaN(imp)||imp<=0) { APP.toast('Importe inválido','err'); return; }
     const now = new Date();
-    const data = {persona:S.gPersona,concepto:con,categoria:S.gCat,importe:imp,split:S.gSplit,fecha:pad(now.getDate())+'/'+pad(now.getMonth()+1),ts:Date.now()};
+    // Build split data
+    const splitData = APP.getSplitDataForSave();
+    const members = APP.getSplitMembers();
+    // Validate if custom split
+    if (S.gSplitMode === 1) {
+      const sum = members.map((_,i) => parseFloat(document.getElementById('pct_'+i).value)||0).reduce((a,b)=>a+b,0);
+      if (Math.abs(sum-100) > 0.5) { APP.toast('Los porcentajes deben sumar 100%','err'); return; }
+    }
+    if (S.gSplitMode === 2) {
+      const sum = members.map((_,i) => parseFloat(document.getElementById('amt_'+i).value)||0).reduce((a,b)=>a+b,0);
+      if (Math.abs(sum-imp) > 0.01) { APP.toast('Los montos deben sumar '+fmt(imp),'err'); return; }
+    }
+    // Split label for display
+    let splitLabel = '50/50';
+    if (S.gSplitMode === 1) splitLabel = 'por %';
+    if (S.gSplitMode === 2) splitLabel = 'por monto';
+    const data = {persona:S.gPersona,concepto:con,categoria:S.gCat,importe:imp,split:splitLabel,splitMode:S.gSplitMode,splitData,fecha:pad(now.getDate())+'/'+pad(now.getMonth()+1),ts:Date.now()};
     if (S.gMode==='ae') {
       S.gEditId ? DB.ref('aeGastos/'+S.gEditId).update(data) : DB.ref('aeGastos').push(data);
     } else if (S.gMode==='casa') {
