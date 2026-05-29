@@ -5,290 +5,429 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cuentas">
-<meta name="theme-color" content="#0f0f0f">
-<title>Cuentas · Andrea & Ernesto</title>
+<meta name="apple-mobile-web-app-title" content="Split AE">
+<meta name="theme-color" content="#7C3AED">
+<title>Split AE</title>
 <link rel="apple-touch-icon" id="appIcon" href="">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <style>
 :root {
-  --bg:#0f0f0f; --surface:#181818; --surface2:#222222; --surface3:#2a2a2a;
-  --border:#2e2e2e; --text:#f0ece4; --muted:#6b6560;
-  --and:#c8a97e; --and-dim:#3d2f1e; --er:#7eb8c8; --er-dim:#1a2e3d;
-  --pos:#6fcf97; --neg:#eb5757; --radius:14px; --radius-sm:8px;
+  --purple:#7C3AED;--purple-l:#9D6FFF;--purple-xl:#C4B5FD;--purple-dim:#2D1B69;
+  --bg:#0F0A1E;--surface:#1C1433;--surface2:#251D3E;--border:#3D3060;
+  --text:#F8F4FF;--muted:#8B7BB5;
+  --and:#F472B6;--and-dim:#4A1942;--er:#60A5FA;--er-dim:#1E3A5F;
+  --casa:#34D399;--casa-dim:#064E3B;--pos:#34D399;--neg:#F87171;--warn:#FBBF24;
+  --r:20px;--rs:12px;--rx:8px;--ff:'Plus Jakarta Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Instrument Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;position:relative}
 
-.view{display:none;flex-direction:column;height:100vh;overflow:hidden}
+/* VIEWS */
+.view{display:none;flex-direction:column;height:100vh;overflow:hidden;position:absolute;inset:0;max-width:430px;margin:0 auto}
 .view.active{display:flex}
-
-.hdr{padding:52px 20px 16px;background:var(--bg);flex-shrink:0}
-.hdr-row{display:flex;align-items:center;justify-content:space-between}
-.hdr h1{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);line-height:1}
-.hdr .sub{font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
-
-.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.icon-btn:active{background:var(--surface3)}
-
-.scroll{flex:1;overflow-y:auto;padding:0 20px 100px;-webkit-overflow-scrolling:touch}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .scroll::-webkit-scrollbar{display:none}
 
-.saldo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
-.saldo-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.saldo-quien{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.2;margin-bottom:16px}
-.saldo-quien.paz{color:var(--pos)}
-.saldo-quien.debe-er{color:var(--er)}
-.saldo-quien.debe-and{color:var(--and)}
+/* HEADERS */
+.hdr{padding:52px 20px 20px;flex-shrink:0;position:relative;overflow:hidden}
+.hdr.ae  {background:linear-gradient(135deg,#7C3AED,#4C1D95,#0F0A1E)}
+.hdr.casa{background:linear-gradient(135deg,#065F46,#047857,#0F0A1E)}
+.hdr.grp {background:linear-gradient(135deg,#1E40AF,#1D4ED8,#0F0A1E)}
+.hdr.cfg {background:linear-gradient(135deg,#374151,#111827,#0F0A1E)}
+.hdr::after{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.06)}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1}
+.hdr-t{font-size:22px;font-weight:800}
+.hdr-s{font-size:12px;color:rgba(255,255,255,0.55);margin-top:2px}
+.iBtn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.backBtn{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);border:none;color:white;font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;padding:5px 12px;border-radius:20px;margin-bottom:14px;position:relative;z-index:1}
 
-.saldo-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.mini-card{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center}
-.mini-card .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.mini-card .val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500}
-.val.and{color:var(--and)}.val.er{color:var(--er)}.val.pos{color:var(--pos)}.val.neg{color:var(--neg)}
+/* HOME */
+.homeHdr{background:linear-gradient(135deg,#7C3AED 0%,#4C1D95 55%,#0F0A1E 100%);padding:56px 20px 28px;position:relative;overflow:hidden;flex-shrink:0}
+.homeHdr::after{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.07)}
+.homeHdr::before{content:'';position:absolute;bottom:-40px;left:10px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04)}
+.homeGreet{font-size:13px;color:rgba(255,255,255,0.6);position:relative;z-index:1}
+.homeTitle{font-size:30px;font-weight:800;position:relative;z-index:1;margin-top:2px}
+.syncBadge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,0.25);border-radius:20px;padding:4px 10px;font-size:11px;margin-top:8px;position:relative;z-index:1}
+.syncDot{width:6px;height:6px;border-radius:50%;background:#6B7280;flex-shrink:0}
+.syncDot.on{background:var(--pos)}
 
-.btn-saldar{width:100%;padding:13px;border-radius:var(--radius-sm);background:transparent;border:1.5px solid var(--pos);color:var(--pos);font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.3px;transition:all .15s}
-.btn-saldar:active{background:var(--pos);color:var(--bg)}
+/* MODULE CARDS */
+.modCard{border-radius:var(--r);padding:22px 20px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s}
+.modCard:active{transform:scale(.97)}
+.modCard.ae  {background:linear-gradient(135deg,#7C3AED,#5B21B6)}
+.modCard.casa{background:linear-gradient(135deg,#065F46,#047857)}
+.modCard.grp {background:linear-gradient(135deg,#1E3A8A,#1D4ED8)}
+.modCard::after{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08)}
+.mcIcon{font-size:26px;margin-bottom:8px;position:relative;z-index:1}
+.mcTitle{font-size:17px;font-weight:800;position:relative;z-index:1}
+.mcSub{font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;position:relative;z-index:1}
+.mcSaldo{font-size:20px;font-weight:800;margin-top:10px;position:relative;z-index:1;min-height:28px}
+.mcArrow{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;color:rgba(255,255,255,0.5);z-index:1}
 
-.sec-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px}
+/* BODY */
+.body{padding:16px 16px 110px}
 
-.gasto-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .1s;position:relative}
-.gasto-item:active{background:var(--surface2)}
-.gasto-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot-and{background:var(--and)}.dot-er{background:var(--er)}
-.gasto-info{flex:1;min-width:0}
-.gasto-concepto{font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gasto-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.gasto-right{text-align:right;flex-shrink:0}
-.gasto-importe{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--text)}
-.gasto-split{font-size:10px;margin-top:2px;color:var(--muted)}
-.split-100{color:var(--neg)}
-.gasto-persona{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:2px;display:inline-block}
-.persona-and{background:var(--and-dim);color:var(--and)}
-.persona-er{background:var(--er-dim);color:var(--er)}
+/* SALDO */
+.saldoPill{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:14px;border:1px solid var(--border)}
+.saldoQuien{font-size:17px;font-weight:700;margin-bottom:12px;line-height:1.3}
+.sq-paz{color:var(--pos)}.sq-er{color:var(--er)}.sq-and{color:var(--and)}
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.stat{background:var(--surface2);border-radius:var(--rs);padding:11px;text-align:center}
+.statL{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
+.statV{font-size:15px;font-weight:700}
+.v-and{color:var(--and)}.v-er{color:var(--er)}.v-pos{color:var(--pos)}.v-neg{color:var(--neg)}.v-warn{color:var(--warn)}
 
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty .icon{font-size:36px;margin-bottom:12px}
-.empty p{font-size:14px;line-height:1.5}
+/* BUTTONS */
+.btnMain{width:100%;padding:14px;border-radius:var(--rs);background:linear-gradient(135deg,var(--purple),var(--purple-l));border:none;color:white;font-family:var(--ff);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+.btnGhost{width:100%;padding:12px;border-radius:var(--rs);background:transparent;border:1.5px solid var(--border);color:var(--muted);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.btnSaldar{width:100%;padding:12px;border-radius:var(--rs);background:transparent;border:1.5px solid var(--pos);color:var(--pos);font-family:var(--ff);font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
+.btnSaldar:active{background:var(--pos);color:var(--bg)}
+.btnWarn{width:100%;padding:12px;border-radius:var(--rs);background:transparent;border:1.5px solid var(--warn);color:var(--warn);font-family:var(--ff);font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
+.btnDanger{width:100%;padding:12px;border-radius:var(--rs);background:transparent;border:1.5px solid var(--neg);color:var(--neg);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
 
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 20px 28px;gap:8px;z-index:100}
-.nav-btn{flex:1;padding:10px 8px;border-radius:var(--radius-sm);background:transparent;border:none;color:var(--muted);font-family:'Instrument Sans',sans-serif;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .15s}
-.nav-btn .nav-icon{font-size:20px}
-.nav-btn.active{color:var(--text)}
-.btn-add-fab{flex:0 0 56px;width:56px;height:56px;border-radius:50%;background:var(--text);border:none;color:var(--bg);font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:-12px;box-shadow:0 4px 20px rgba(240,236,228,.2);transition:transform .15s}
-.btn-add-fab:active{transform:scale(.93)}
+/* FAB */
+.fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;border:none;color:white;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:transform .15s;z-index:50}
+.fab:active{transform:scale(.92)}
+.fab.ae  {background:linear-gradient(135deg,#7C3AED,#9D6FFF)}
+.fab.casa{background:linear-gradient(135deg,#065F46,#34D399)}
+.fab.grp {background:linear-gradient(135deg,#1E40AF,#60A5FA)}
 
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
-.modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:0 20px 40px;animation:slideUp .25s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
-@keyframes slideUp{from{transform:translateY(100%)}}
-.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px}
-.modal h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:20px}
+/* SEC */
+.sec{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-weight:700}
 
-.form-group{margin-bottom:14px}
-.form-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block}
-.form-input,.form-select{width:100%;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:15px;transition:border-color .15s;-webkit-appearance:none}
-.form-input:focus,.form-select:focus{outline:none;border-color:var(--text)}
-.form-input::placeholder{color:var(--muted)}
-.form-input.big{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;text-align:center;letter-spacing:1px}
+/* ITEM */
+.item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:background .1s}
+.item:active{background:var(--surface2)}
+.iAv{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.av-and{background:var(--and-dim)}.av-er{background:var(--er-dim)}.av-casa{background:var(--casa-dim)}.av-grp{background:var(--purple-dim)}
+.iInfo{flex:1;min-width:0}
+.iTitle{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iSub{font-size:11px;color:var(--muted);margin-top:2px}
+.iRight{text-align:right;flex-shrink:0}
+.iAmt{font-size:14px;font-weight:700}
+.iSplit{font-size:10px;color:var(--muted);margin-top:2px}
+.s100{color:var(--neg)!important}
+.chip{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-top:3px}
+.ch-and{background:var(--and-dim);color:var(--and)}.ch-er{background:var(--er-dim);color:var(--er)}.ch-grp{background:var(--purple-dim);color:var(--purple-xl)}
 
-.persona-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.persona-btn{padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
-.persona-btn.active-and{border-color:var(--and);background:var(--and-dim);color:var(--and)}
-.persona-btn.active-er{border-color:var(--er);background:var(--er-dim);color:var(--er)}
+/* FILTERS */
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px}
+.filters::-webkit-scrollbar{display:none}
+.fChip{flex-shrink:0;padding:5px 13px;border-radius:20px;background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);font-family:var(--ff);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fChip.on{background:var(--purple-dim);border-color:var(--purple-l);color:var(--purple-xl)}
 
-.split-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.split-btn{padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
-.split-btn.active{border-color:var(--text);background:var(--surface3);color:var(--text)}
+/* MODAL */
+.mOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
+.mOverlay.open{display:flex}
+.modal{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-width:430px;padding:0 18px 44px;max-height:90vh;overflow-y:auto;animation:sUp .25s ease-out}
+@keyframes sUp{from{transform:translateY(100%)}}
+.mHandle{width:34px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px}
+.mTitle{font-size:21px;font-weight:800;margin-bottom:20px}
+.fGrp{margin-bottom:14px}
+.fLbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block;font-weight:700}
+.fInp{width:100%;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--ff);font-size:14px;-webkit-appearance:none}
+.fInp:focus{outline:none;border-color:var(--purple-l)}
+.fInp::placeholder{color:var(--muted)}
+.fInp.big{font-size:30px;font-weight:800;text-align:center}
+.tGroup{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tBtn{padding:11px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--ff);font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s}
+.tBtn.t-and{border-color:var(--and);background:var(--and-dim);color:var(--and)}
+.tBtn.t-er {border-color:var(--er); background:var(--er-dim); color:var(--er)}
+.tBtn.t-on {border-color:var(--purple-l);background:var(--purple-dim);color:var(--purple-xl)}
+.catGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.catBtn{padding:7px 3px;border-radius:var(--rx);border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;text-align:center;font-family:var(--ff);font-weight:600}
+.catBtn.on{border-color:var(--purple-l);background:var(--purple-dim);color:var(--purple-xl)}
+.cIcon{font-size:17px;display:block;margin-bottom:2px}
 
-.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.cat-btn{padding:8px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all .15s}
-.cat-btn.active{border-color:var(--text);background:var(--surface3);color:var(--text)}
-.cat-icon{font-size:16px;display:block;margin-bottom:2px}
+/* CONFIRM */
+.cfOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px}
+.cfOverlay.open{display:flex}
+.cfBox{background:var(--surface);border-radius:var(--r);padding:26px 22px;max-width:340px;width:100%;text-align:center;border:1px solid var(--border)}
+.cfBox h3{font-size:21px;font-weight:800;margin-bottom:8px}
+.cfBox p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:22px;white-space:pre-line}
+.cfBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cfYes{padding:12px;border-radius:var(--rs);background:linear-gradient(135deg,var(--purple),var(--purple-l));border:none;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--ff)}
+.cfNo {padding:12px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer;font-family:var(--ff)}
 
-.btn-primary{width:100%;padding:15px;border-radius:var(--radius-sm);background:var(--text);border:none;color:var(--bg);font-family:'Instrument Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
-.btn-primary:active{opacity:.85}
-.btn-danger{width:100%;padding:13px;border-radius:var(--radius-sm);background:transparent;border:1.5px solid var(--neg);color:var(--neg);font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
-
-.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:20px}
-.confirm-overlay.open{display:flex}
-.confirm-box{background:var(--surface);border-radius:var(--radius);padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid var(--border)}
-.confirm-box h3{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:10px}
-.confirm-box p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:24px;white-space:pre-line}
-.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn-yes{padding:13px;border-radius:var(--radius-sm);background:var(--pos);border:none;color:var(--bg);font-weight:700;font-size:14px;cursor:pointer}
-.btn-no{padding:13px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer}
-
-.historial-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:background .1s}
-.historial-item:active{background:var(--surface2)}
-.historial-fecha{font-size:11px;color:var(--muted);margin-bottom:4px}
-.historial-resumen{font-size:14px;font-weight:500}
-.historial-detail{font-size:12px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace}
-.historial-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:var(--surface2);color:var(--muted);margin-top:4px}
-
-.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+/* TOAST */
+.toast{position:fixed;top:54px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 .toast.ok{border-color:var(--pos);color:var(--pos)}
 .toast.err{border-color:var(--neg);color:var(--neg)}
 
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;margin-left:6px}
-.sync-dot.online{background:var(--pos)}
-.sync-dot.offline{background:var(--neg)}
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty .ei{font-size:38px;margin-bottom:12px}
+.empty p{font-size:13px;line-height:1.6}
 
-.back-btn{display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--muted);font-family:'Instrument Sans',sans-serif;font-size:14px;cursor:pointer;padding:0;margin-bottom:16px}
+/* GROUP */
+.grpCard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:13px}
+.grpCard:active{background:var(--surface2)}
+.grpEmoji{font-size:26px;width:46px;height:46px;background:var(--purple-dim);border-radius:var(--rx);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.grpName{font-size:14px;font-weight:700}
+.grpMembers{font-size:11px;color:var(--muted);margin-top:2px}
+.grpSaldo{font-size:12px;font-weight:700;margin-top:3px;color:var(--purple-xl)}
+
+/* HIST */
+.hCard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:13px 15px;margin-bottom:8px;cursor:pointer}
+.hCard:active{background:var(--surface2)}
+.hFecha{font-size:11px;color:var(--muted);margin-bottom:3px}
+.hTitle{font-size:13px;font-weight:700}
+.hDetail{font-size:11px;color:var(--muted);margin-top:3px}
+.hBadge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;background:var(--purple-dim);color:var(--purple-xl);margin-top:5px}
+
+/* MEMBER ROW */
+.mRow{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--rx);padding:9px 12px;margin-bottom:6px}
+.mRowName{font-size:13px;font-weight:600}
+.mRowVal{font-size:13px;font-weight:700}
 </style>
 </head>
 <body>
 
-<!-- MAIN VIEW -->
-<div class="view active" id="viewMain">
-  <div class="hdr">
-    <div class="hdr-row">
+<!-- HOME -->
+<div class="view active" id="vHome">
+  <div class="homeHdr">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1">
       <div>
-        <h1>Cuentas <span class="sync-dot" id="syncDot"></span></h1>
-        <div class="sub">Andrea & Ernesto</div>
+        <div class="homeGreet">Hola 👋</div>
+        <div class="homeTitle">Split AE</div>
+        <div class="syncBadge"><span class="syncDot" id="syncDot"></span><span id="syncTxt">Conectando...</span></div>
       </div>
-      <button class="icon-btn" onclick="showView('viewConfig')">⚙️</button>
-    </div>
-  </div>
-  <div class="scroll" id="scrollMain">
-    <div class="saldo-card">
-      <div class="saldo-label">Saldo actual</div>
-      <div class="saldo-quien" id="saldoQuien">Cargando...</div>
-      <div class="saldo-row">
-        <div class="mini-card"><div class="lbl">Andrea gastó</div><div class="val and" id="totalAnd">—</div></div>
-        <div class="mini-card"><div class="lbl">Ernesto gastó</div><div class="val er" id="totalEr">—</div></div>
-      </div>
-      <div class="saldo-row">
-        <div class="mini-card"><div class="lbl">Diferencia</div><div class="val" id="saldoDif">—</div></div>
-        <div class="mini-card"><div class="lbl">A saldar</div><div class="val pos" id="saldoASaldar">—</div></div>
-      </div>
-      <button class="btn-saldar" onclick="pedirSaldar()">✓ Cuenta saldada</button>
-    </div>
-    <div class="sec-title">Gastos del período</div>
-    <div id="listaGastos"><div class="empty"><div class="icon">🧾</div><p>Sin gastos aún.<br>Añade el primero con +</p></div></div>
-  </div>
-  <div class="bottom-nav">
-    <button class="nav-btn active" onclick="showView('viewMain')"><span class="nav-icon">⚖️</span>Cuentas</button>
-    <button class="btn-add-fab" onclick="abrirModal()">+</button>
-    <button class="nav-btn" onclick="showView('viewHistorial')"><span class="nav-icon">📂</span>Historial</button>
-  </div>
-</div>
-
-<!-- HISTORIAL VIEW -->
-<div class="view" id="viewHistorial">
-  <div class="hdr">
-    <div class="hdr-row">
-      <div><h1>Historial</h1><div class="sub">Cuentas saldadas</div></div>
-      <button class="icon-btn" onclick="showView('viewMain')">✕</button>
+      <button class="iBtn" onclick="APP.nav('vConfig')">⚙️</button>
     </div>
   </div>
   <div class="scroll">
-    <div id="listaHistorial"><div class="empty"><div class="icon">📂</div><p>Aún no habéis<br>saldado ninguna cuenta.</p></div></div>
-  </div>
-  <div class="bottom-nav">
-    <button class="nav-btn" onclick="showView('viewMain')"><span class="nav-icon">⚖️</span>Cuentas</button>
-    <button class="btn-add-fab" onclick="showView('viewMain');abrirModal()">+</button>
-    <button class="nav-btn active" onclick="showView('viewHistorial')"><span class="nav-icon">📂</span>Historial</button>
+    <div style="padding:16px 16px 100px">
+      <div class="modCard ae" onclick="APP.nav('vAE')">
+        <div class="mcIcon">⚖️</div>
+        <div class="mcTitle">Andrea & Ernesto</div>
+        <div class="mcSub">Gastos personales entre vosotros</div>
+        <div class="mcSaldo" id="homeAE">—</div>
+        <div class="mcArrow">→</div>
+      </div>
+      <div class="modCard casa" onclick="APP.nav('vCasa')">
+        <div class="mcIcon">🏠</div>
+        <div class="mcTitle">Cuenta Casa</div>
+        <div class="mcSub">Adelantos del bote común · Santander</div>
+        <div class="mcSaldo" id="homeCasa">—</div>
+        <div class="mcArrow">→</div>
+      </div>
+      <div class="modCard grp" onclick="APP.nav('vGrupos')">
+        <div class="mcIcon">👥</div>
+        <div class="mcTitle">Grupos</div>
+        <div class="mcSub">Viajes · Amigos · Eventos</div>
+        <div class="mcSaldo" id="homeGrp">—</div>
+        <div class="mcArrow">→</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- HISTORIAL DETAIL VIEW -->
-<div class="view" id="viewHistorialDetail">
-  <div class="hdr">
-    <button class="back-btn" onclick="showView('viewHistorial')">← Historial</button>
-    <h1 id="detailTitle" style="font-family:'DM Serif Display',serif;font-size:22px"></h1>
-    <div class="sub" id="detailSub"></div>
-  </div>
-  <div class="scroll"><div id="detailContent"></div></div>
-  <div class="bottom-nav">
-    <button class="nav-btn" onclick="showView('viewMain')"><span class="nav-icon">⚖️</span>Cuentas</button>
-    <button class="btn-add-fab" onclick="showView('viewMain');abrirModal()">+</button>
-    <button class="nav-btn" onclick="showView('viewHistorial')"><span class="nav-icon">📂</span>Historial</button>
-  </div>
-</div>
-
-<!-- CONFIG VIEW -->
-<div class="view" id="viewConfig">
-  <div class="hdr">
+<!-- AE -->
+<div class="view" id="vAE">
+  <div class="hdr ae">
+    <button class="backBtn" onclick="APP.nav('vHome')">← Inicio</button>
     <div class="hdr-row">
-      <div><h1>Ajustes</h1></div>
-      <button class="icon-btn" onclick="showView('viewMain')">✕</button>
+      <div><div class="hdr-t">Andrea & Ernesto</div><div class="hdr-s">Gastos personales</div></div>
+      <button class="iBtn" onclick="APP.nav('vAEHist')">📂</button>
     </div>
   </div>
-  <div class="scroll">
-    <div class="sec-title">Estado</div>
-    <div class="saldo-card" style="padding:14px 16px">
-      <div style="font-size:13px;color:var(--muted)" id="cfgStatus">Conectando con Firebase...</div>
+  <div class="scroll"><div class="body">
+    <div class="saldoPill">
+      <div class="saldoQuien" id="aeSQ">Cargando...</div>
+      <div class="statGrid">
+        <div class="stat"><div class="statL">Andrea</div><div class="statV v-and" id="aeTa">—</div></div>
+        <div class="stat"><div class="statL">Ernesto</div><div class="statV v-er" id="aeTe">—</div></div>
+      </div>
+      <div class="statGrid">
+        <div class="stat"><div class="statL">Diferencia</div><div class="statV" id="aeDif">—</div></div>
+        <div class="stat"><div class="statL">A saldar</div><div class="statV v-pos" id="aeAS">—</div></div>
+      </div>
+      <button class="btnSaldar" onclick="APP.saldarAE()">✓ Saldar cuenta</button>
     </div>
-    <div class="sec-title" style="margin-top:24px">Peligro</div>
-    <button class="btn-danger" onclick="confirmarBorrarTodo()">Borrar todos los datos</button>
+    <div class="filters" id="aeFilters"></div>
+    <div class="sec">Gastos</div>
+    <div id="aeList"><div class="empty"><div class="ei">🧾</div><p>Sin gastos aún.</p></div></div>
+  </div></div>
+  <button class="fab ae" onclick="APP.openGasto('ae')">+</button>
+</div>
+
+<!-- AE HIST -->
+<div class="view" id="vAEHist">
+  <div class="hdr ae">
+    <button class="backBtn" onclick="APP.nav('vAE')">← Volver</button>
+    <div class="hdr-row"><div><div class="hdr-t">Historial A&E</div><div class="hdr-s">Cuentas saldadas</div></div></div>
   </div>
-  <div class="bottom-nav">
-    <button class="nav-btn" onclick="showView('viewMain')"><span class="nav-icon">⚖️</span>Cuentas</button>
-    <button class="btn-add-fab" onclick="showView('viewMain');abrirModal()">+</button>
-    <button class="nav-btn" onclick="showView('viewHistorial')"><span class="nav-icon">📂</span>Historial</button>
+  <div class="scroll"><div class="body"><div id="aeHList"></div></div></div>
+</div>
+
+<!-- AE HIST DETAIL -->
+<div class="view" id="vAEHD">
+  <div class="hdr ae">
+    <button class="backBtn" onclick="APP.nav('vAEHist')">← Historial</button>
+    <div class="hdr-row"><div><div class="hdr-t" id="aeHDT">Período</div><div class="hdr-s" id="aeHDS"></div></div></div>
   </div>
+  <div class="scroll"><div class="body"><div id="aeHDC"></div></div></div>
+</div>
+
+<!-- CASA -->
+<div class="view" id="vCasa">
+  <div class="hdr casa">
+    <button class="backBtn" onclick="APP.nav('vHome')">← Inicio</button>
+    <div class="hdr-row">
+      <div><div class="hdr-t">Cuenta Casa</div><div class="hdr-s">Bote común · Santander</div></div>
+      <button class="iBtn" onclick="APP.nav('vCasaHist')">📂</button>
+    </div>
+  </div>
+  <div class="scroll"><div class="body">
+    <div class="saldoPill">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:10px">La casa debe reembolsar</div>
+      <div class="statGrid">
+        <div class="stat"><div class="statL">A Andrea</div><div class="statV v-and" id="casaTa">—</div></div>
+        <div class="stat"><div class="statL">A Ernesto</div><div class="statV v-er" id="casaTe">—</div></div>
+      </div>
+      <div class="stat" style="margin-bottom:12px"><div class="statL">Total pendiente</div><div class="statV v-warn" id="casaTotal">—</div></div>
+      <button class="btnWarn" onclick="APP.saldarCasa()">✓ Reembolso realizado</button>
+    </div>
+    <div class="filters" id="casaFilters"></div>
+    <div class="sec">Adelantos pendientes</div>
+    <div id="casaList"><div class="empty"><div class="ei">🏠</div><p>Sin adelantos pendientes.</p></div></div>
+  </div></div>
+  <button class="fab casa" onclick="APP.openGasto('casa')">+</button>
+</div>
+
+<!-- CASA HIST -->
+<div class="view" id="vCasaHist">
+  <div class="hdr casa">
+    <button class="backBtn" onclick="APP.nav('vCasa')">← Volver</button>
+    <div class="hdr-row"><div><div class="hdr-t">Historial Casa</div><div class="hdr-s">Reembolsos realizados</div></div></div>
+  </div>
+  <div class="scroll"><div class="body"><div id="casaHList"></div></div></div>
+</div>
+
+<!-- CASA HIST DETAIL -->
+<div class="view" id="vCasaHD">
+  <div class="hdr casa">
+    <button class="backBtn" onclick="APP.nav('vCasaHist')">← Historial</button>
+    <div class="hdr-row"><div><div class="hdr-t" id="casaHDT">Reembolso</div><div class="hdr-s" id="casaHDS"></div></div></div>
+  </div>
+  <div class="scroll"><div class="body"><div id="casaHDC"></div></div></div>
+</div>
+
+<!-- GRUPOS -->
+<div class="view" id="vGrupos">
+  <div class="hdr grp">
+    <button class="backBtn" onclick="APP.nav('vHome')">← Inicio</button>
+    <div class="hdr-row"><div><div class="hdr-t">Grupos</div><div class="hdr-s">Viajes · Amigos · Eventos</div></div></div>
+  </div>
+  <div class="scroll"><div class="body">
+    <div class="sec">Grupos activos</div>
+    <div id="grpList"><div class="empty"><div class="ei">👥</div><p>Sin grupos aún.<br>Crea el primero con +</p></div></div>
+  </div></div>
+  <button class="fab grp" onclick="APP.openNuevoGrupo()">+</button>
+</div>
+
+<!-- GRUPO DETAIL -->
+<div class="view" id="vGrpD">
+  <div class="hdr grp">
+    <button class="backBtn" onclick="APP.nav('vGrupos')">← Grupos</button>
+    <div class="hdr-row"><div><div class="hdr-t" id="grpDT">Grupo</div><div class="hdr-s" id="grpDS"></div></div></div>
+  </div>
+  <div class="scroll"><div class="body">
+    <div id="grpDSaldo"></div>
+    <div class="sec">Gastos del grupo</div>
+    <div id="grpDList"><div class="empty"><div class="ei">🧾</div><p>Sin gastos aún.</p></div></div>
+  </div></div>
+  <button class="fab grp" id="grpDFab" onclick="APP.openGasto('grp')">+</button>
+</div>
+
+<!-- CONFIG -->
+<div class="view" id="vConfig">
+  <div class="hdr cfg">
+    <button class="backBtn" onclick="APP.nav('vHome')">← Inicio</button>
+    <div class="hdr-row"><div><div class="hdr-t">Ajustes</div></div></div>
+  </div>
+  <div class="scroll"><div class="body">
+    <div class="saldoPill"><div style="font-size:13px;font-weight:600" id="cfgSt">Conectando...</div></div>
+    <div class="sec" style="margin-top:24px">Zona de peligro</div>
+    <button class="btnDanger" onclick="APP.confirm('Borrar TODO','Esto borrará todos los datos en todos los dispositivos. ¿Seguro?',APP.borrarTodo)">Borrar todos los datos</button>
+  </div></div>
 </div>
 
 <!-- MODAL GASTO -->
-<div class="modal-overlay" id="modalGasto">
+<div class="mOverlay" id="mGasto">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <h2 id="modalTitle">Nuevo gasto</h2>
-    <div class="form-group">
-      <label class="form-label">¿Quién pagó?</label>
-      <div class="persona-toggle">
-        <button class="persona-btn active-and" id="btnAnd" onclick="selectPersona('andrea')">Andrea</button>
-        <button class="persona-btn" id="btnEr" onclick="selectPersona('ernesto')">Ernesto</button>
+    <div class="mHandle"></div>
+    <div class="mTitle" id="mGastoT">Nuevo gasto</div>
+    <div class="fGrp"><label class="fLbl">¿Quién pagó?</label><div class="tGroup" id="mPersona"></div></div>
+    <div class="fGrp"><label class="fLbl">Importe</label><input class="fInp big" id="mImp" type="number" placeholder="0,00" step="0.01" inputmode="decimal"></div>
+    <div class="fGrp"><label class="fLbl">Concepto / Lugar</label><input class="fInp" id="mCon" placeholder="Ej: Mercadona, La Pepita..."></div>
+    <div class="fGrp"><label class="fLbl">Categoría</label><div class="catGrid" id="mCat"></div></div>
+    <div class="fGrp" id="mSplitGrp"><label class="fLbl">Split</label>
+      <div class="tGroup">
+        <button class="tBtn t-on" id="m50" onclick="APP.setSplit('50%')">50% compartido</button>
+        <button class="tBtn" id="m100" onclick="APP.setSplit('100%')">100% exclusivo</button>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Importe</label>
-      <input class="form-input big" id="fImporte" type="number" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Concepto / Lugar</label>
-      <input class="form-input" id="fConcepto" placeholder="Ej: Le Coq restaurante">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Categoría</label>
-      <div class="cat-grid" id="catGrid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Split</label>
-      <div class="split-toggle">
-        <button class="split-btn active" id="btn50" onclick="selectSplit('50%')">50% compartido</button>
-        <button class="split-btn" id="btn100" onclick="selectSplit('100%')">100% exclusivo</button>
-      </div>
-    </div>
-    <button class="btn-primary" onclick="guardarGasto()">Guardar gasto</button>
-    <button class="btn-danger" id="btnEliminarGasto" onclick="eliminarGastoActual()" style="display:none">Eliminar gasto</button>
-    <button class="btn-primary" onclick="cerrarModal()" style="background:var(--surface2);color:var(--muted);margin-top:8px">Cancelar</button>
+    <button class="btnMain" onclick="APP.saveGasto()">Guardar gasto</button>
+    <button class="btnDanger" id="mDelBtn" onclick="APP.deleteGasto()" style="display:none">Eliminar gasto</button>
+    <button class="btnGhost" onclick="APP.closeGasto()">Cancelar</button>
   </div>
 </div>
 
-<!-- CONFIRM DIALOG -->
-<div class="confirm-overlay" id="confirmOverlay">
-  <div class="confirm-box">
-    <h3 id="confirmTitle">¿Estás seguro?</h3>
-    <p id="confirmMsg"></p>
-    <div class="confirm-actions">
-      <button class="btn-no" onclick="cerrarConfirm()">No</button>
-      <button class="btn-yes" id="confirmYesBtn">Sí, adelante</button>
+<!-- MODAL GRUPO -->
+<div class="mOverlay" id="mGrupo">
+  <div class="modal">
+    <div class="mHandle"></div>
+    <div class="mTitle">Nuevo grupo</div>
+    <div class="fGrp"><label class="fLbl">Nombre</label><input class="fInp" id="ngNom" placeholder="Ej: Viaje Roma, Cena cumple..."></div>
+    <div class="fGrp"><label class="fLbl">Emoji</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="ngEmojis">
+        <button class="catBtn on" data-e="✈️" onclick="APP.setEmoji(this,'✈️')"><span class="cIcon">✈️</span></button>
+        <button class="catBtn" data-e="🍕" onclick="APP.setEmoji(this,'🍕')"><span class="cIcon">🍕</span></button>
+        <button class="catBtn" data-e="🎉" onclick="APP.setEmoji(this,'🎉')"><span class="cIcon">🎉</span></button>
+        <button class="catBtn" data-e="🏖️" onclick="APP.setEmoji(this,'🏖️')"><span class="cIcon">🏖️</span></button>
+        <button class="catBtn" data-e="🏔️" onclick="APP.setEmoji(this,'🏔️')"><span class="cIcon">🏔️</span></button>
+        <button class="catBtn" data-e="🎸" onclick="APP.setEmoji(this,'🎸')"><span class="cIcon">🎸</span></button>
+        <button class="catBtn" data-e="🎭" onclick="APP.setEmoji(this,'🎭')"><span class="cIcon">🎭</span></button>
+        <button class="catBtn" data-e="🎮" onclick="APP.setEmoji(this,'🎮')"><span class="cIcon">🎮</span></button>
+      </div>
+    </div>
+    <div class="fGrp">
+      <label class="fLbl">Participantes</label>
+      <div id="ngParts" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="fInp" id="ngNew" placeholder="Añadir participante..." style="flex:1">
+        <button class="btnMain" style="width:auto;padding:0 16px;margin-top:0" onclick="APP.addMiembro()">+</button>
+      </div>
+    </div>
+    <button class="btnMain" onclick="APP.crearGrupo()">Crear grupo</button>
+    <button class="btnGhost" onclick="APP.closeGrupo()">Cancelar</button>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="cfOverlay" id="cfOverlay">
+  <div class="cfBox">
+    <h3 id="cfT">¿Estás seguro?</h3>
+    <p id="cfM"></p>
+    <div class="cfBtns">
+      <button class="cfNo" onclick="APP.closeConfirm()">No</button>
+      <button class="cfYes" id="cfY">Sí, adelante</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- FIREBASE SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, push, set, remove, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
+<script>
+// ── FIREBASE CONFIG ───────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyC8dS1yX4U6SccgJ0cfVj4uvQ1L4aC_kVw",
   authDomain: "splitwise-ae.firebaseapp.com",
@@ -298,301 +437,481 @@ const firebaseConfig = {
   messagingSenderId: "151516900474",
   appId: "1:151516900474:web:c5bdcb7561245d3d3e5fc3"
 };
+firebase.initializeApp(firebaseConfig);
+const DB = firebase.database();
 
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
-
-// ── CATEGORÍAS ───────────────────────────────────────────────
+// ── CATS ─────────────────────────────────────────────────────
 const CATS = [
-  {id:"Restaurantes",icon:"🍽️"},{id:"Supermercado",icon:"🛒"},
-  {id:"Transporte",icon:"🚗"},{id:"Ocio",icon:"🎬"},
-  {id:"Salud",icon:"💊"},{id:"Casa",icon:"🏠"},
-  {id:"Ropa",icon:"👕"},{id:"Varios",icon:"📦"},
+  {id:"Restaurantes",ic:"🍽️"},{id:"Supermercado",ic:"🛒"},
+  {id:"Transporte",ic:"🚗"},{id:"Ocio",ic:"🎬"},
+  {id:"Salud",ic:"💊"},{id:"Casa",ic:"🏠"},
+  {id:"Ropa",ic:"👕"},{id:"Varios",ic:"📦"}
 ];
 
-// ── STATE ────────────────────────────────────────────────────
-let gastos    = {};
-let historial = {};
-let editingId = null;
-let fPersona  = "andrea";
-let fSplit    = "50%";
-let fCategoria= "Restaurantes";
-
-// ── FIREBASE LISTENERS ───────────────────────────────────────
-const gastosRef    = ref(db, "gastos");
-const historialRef = ref(db, "historial");
-
-onValue(gastosRef, snap => {
-  gastos = snap.val() || {};
-  renderSaldo(); renderGastos();
-  setSync(true);
-}, err => { setSync(false); });
-
-onValue(historialRef, snap => {
-  historial = snap.val() || {};
-  renderHistorial();
-});
-
-function setSync(ok) {
-  const d = document.getElementById("syncDot");
-  d.className = "sync-dot " + (ok ? "online" : "offline");
-  document.getElementById("cfgStatus").textContent =
-    ok ? "✓ Conectado a Firebase · Sincronización en tiempo real" : "✗ Sin conexión";
-}
-
-// ── VIEWS ────────────────────────────────────────────────────
-window.showView = function(id) {
-  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+// ── STATE ─────────────────────────────────────────────────────
+const S = {
+  aeG:{}, aeH:{}, casaG:{}, casaH:{}, grupos:{},
+  curGrp: null,
+  gMode: 'ae', gEditId: null,
+  gPersona: 'andrea', gSplit: '50%', gCat: 'Restaurantes',
+  ngEmoji: '✈️', ngMembers: ['Andrea','Ernesto'],
+  aeFilter: 'todos', casaFilter: 'todos'
 };
 
-// ── SALDO ────────────────────────────────────────────────────
-function calcSaldo() {
-  const arr = Object.values(gastos);
-  const totalAnd = arr.reduce((s,g) => g.persona==="andrea" ? s+g.importe : s, 0);
-  const totalEr  = arr.reduce((s,g) => g.persona==="ernesto" ? s+g.importe : s, 0);
-  const dif      = totalAnd - totalEr;
-  const aImporte = Math.abs(dif) / 2;
-  let quien = "paz", quienTxt = "Están en paz 🤝";
-  if (Math.abs(dif) > 0.009) {
-    if (dif > 0) { quien="debe-er"; quienTxt=`Ernesto debe ${fmt(aImporte)} a Andrea`; }
-    else         { quien="debe-and"; quienTxt=`Andrea debe ${fmt(aImporte)} a Ernesto`; }
-  }
-  return {totalAnd, totalEr, dif, aImporte, quien, quienTxt};
-}
+// ── APP OBJECT (all functions global via APP.*) ───────────────
+const APP = {
 
-function renderSaldo() {
-  const s = calcSaldo();
-  const el = document.getElementById("saldoQuien");
-  el.textContent = s.quienTxt; el.className = "saldo-quien " + s.quien;
-  document.getElementById("totalAnd").textContent = fmt(s.totalAnd);
-  document.getElementById("totalEr").textContent  = fmt(s.totalEr);
-  const difEl = document.getElementById("saldoDif");
-  difEl.textContent = fmt(Math.abs(s.dif));
-  difEl.className   = "val " + (Math.abs(s.dif)<0.01 ? "pos" : s.dif>0 ? "er" : "and");
-  document.getElementById("saldoASaldar").textContent = fmt(s.aImporte);
-}
+  // NAVIGATION
+  nav(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  },
 
-function renderGastos() {
-  const el = document.getElementById("listaGastos");
-  const arr = Object.entries(gastos).sort((a,b) => b[1].ts - a[1].ts);
-  if (!arr.length) {
-    el.innerHTML=`<div class="empty"><div class="icon">🧾</div><p>Sin gastos aún.<br>Añade el primero con +</p></div>`;
-    return;
-  }
-  el.innerHTML = arr.map(([id,g]) => {
-    const cat  = CATS.find(c=>c.id===g.categoria)||{icon:"📦"};
-    const pCls = g.persona==="andrea" ? "persona-and" : "persona-er";
-    const pLbl = g.persona==="andrea" ? "Andrea" : "Ernesto";
-    const dCls = g.persona==="andrea" ? "dot-and" : "dot-er";
-    const sCls = g.split==="100%" ? "split-100" : "";
-    return `<div class="gasto-item" onclick="editarGasto('${id}')">
-      <div class="gasto-dot ${dCls}"></div>
-      <div class="gasto-info">
-        <div class="gasto-concepto">${g.concepto}</div>
-        <div class="gasto-meta">${cat.icon} ${g.categoria} · ${g.fecha}</div>
-        <span class="gasto-persona ${pCls}">${pLbl}</span>
-      </div>
-      <div class="gasto-right">
-        <div class="gasto-importe">${fmt(g.importe)}</div>
-        <div class="gasto-split ${sCls}">${g.split}</div>
-      </div>
-    </div>`;
-  }).join("");
-}
+  // FIREBASE SETUP
+  init() {
+    DB.ref('aeGastos').on('value', s => { S.aeG = s.val()||{}; APP.renderAE(); APP.renderHome(); }, () => APP.setSync(false));
+    DB.ref('aeHist').on('value',   s => { S.aeH = s.val()||{}; APP.renderAEHist(); });
+    DB.ref('casaGastos').on('value', s => { S.casaG = s.val()||{}; APP.renderCasa(); APP.renderHome(); }, () => APP.setSync(false));
+    DB.ref('casaHist').on('value',   s => { S.casaH = s.val()||{}; APP.renderCasaHist(); });
+    DB.ref('grupos').on('value', s => {
+      S.grupos = s.val()||{};
+      APP.renderGrupos(); APP.renderHome(); APP.setSync(true);
+      if (S.curGrp && S.grupos[S.curGrp]) APP.renderGrpDetail(S.curGrp);
+    });
+  },
 
-function renderHistorial() {
-  const el  = document.getElementById("listaHistorial");
-  const arr = Object.entries(historial).sort((a,b)=>b[1].ts-a[1].ts);
-  if (!arr.length) {
-    el.innerHTML=`<div class="empty"><div class="icon">📂</div><p>Aún no habéis<br>saldado ninguna cuenta.</p></div>`;
-    return;
-  }
-  el.innerHTML = arr.map(([id,h])=>`
-    <div class="historial-item" onclick="verDetalle('${id}')">
-      <div class="historial-fecha">${h.fechaSaldo}</div>
-      <div class="historial-resumen">${h.quienTxt}</div>
-      <div class="historial-detail">Andrea: ${fmt(h.totalAnd)} · Ernesto: ${fmt(h.totalEr)}</div>
-      <span class="historial-badge">${Object.keys(h.gastos||{}).length} gastos · ${fmt(h.aImporte)} saldado</span>
-    </div>`).join("");
-}
+  setSync(ok) {
+    document.getElementById('syncDot').className = 'syncDot' + (ok ? ' on' : '');
+    document.getElementById('syncTxt').textContent = ok ? 'En línea · Tiempo real' : 'Sin conexión';
+    document.getElementById('cfgSt').textContent = ok ? '✓ Firebase conectado · Sincronización en tiempo real' : '✗ Sin conexión';
+  },
 
-// ── HISTORIAL DETALLE ────────────────────────────────────────
-window.verDetalle = function(hid) {
-  const h = historial[hid]; if (!h) return;
-  document.getElementById("detailTitle").textContent = "Período saldado";
-  document.getElementById("detailSub").textContent   = h.fechaSaldo;
-  const arr = Object.values(h.gastos||{}).sort((a,b)=>b.ts-a.ts);
-  document.getElementById("detailContent").innerHTML = `
-    <div class="saldo-card">
-      <div class="saldo-row">
-        <div class="mini-card"><div class="lbl">Andrea gastó</div><div class="val and">${fmt(h.totalAnd)}</div></div>
-        <div class="mini-card"><div class="lbl">Ernesto gastó</div><div class="val er">${fmt(h.totalEr)}</div></div>
-      </div>
-      <div class="mini-card" style="margin-top:10px"><div class="lbl">Saldado</div><div class="val pos">${fmt(h.aImporte)}</div></div>
-    </div>
-    <div class="sec-title">${arr.length} gastos</div>
-    ${arr.map(g=>{
-      const cat=CATS.find(c=>c.id===g.categoria)||{icon:"📦"};
-      const pCls=g.persona==="andrea"?"persona-and":"persona-er";
-      const pLbl=g.persona==="andrea"?"Andrea":"Ernesto";
-      const dCls=g.persona==="andrea"?"dot-and":"dot-er";
-      return `<div class="gasto-item" style="cursor:default">
-        <div class="gasto-dot ${dCls}"></div>
-        <div class="gasto-info">
-          <div class="gasto-concepto">${g.concepto}</div>
-          <div class="gasto-meta">${cat.icon} ${g.categoria} · ${g.fecha}</div>
-          <span class="gasto-persona ${pCls}">${pLbl}</span>
+  // HOME
+  renderHome() {
+    const ae = APP.calcAE();
+    document.getElementById('homeAE').textContent = ae.short;
+    const ca = APP.calcCasa();
+    document.getElementById('homeCasa').textContent = 'Pendiente: ' + fmt(ca.total);
+    const ng = Object.values(S.grupos).filter(g => !g.cerrado).length;
+    document.getElementById('homeGrp').textContent = ng ? ng + ' grupo' + (ng>1?'s':'') + ' activo' + (ng>1?'s':'') : 'Sin grupos activos';
+  },
+
+  // AE
+  calcAE() {
+    const arr = Object.values(S.aeG);
+    const tA = arr.reduce((s,g) => g.persona==='andrea' ? s+g.importe : s, 0);
+    const tE = arr.reduce((s,g) => g.persona==='ernesto' ? s+g.importe : s, 0);
+    const dif = tA - tE; const aS = Math.abs(dif)/2;
+    let cls='sq-paz', txt='Están en paz 🤝', short='En paz 🤝';
+    if (Math.abs(dif) > 0.009) {
+      if (dif>0) { cls='sq-er';  txt='Ernesto debe '+fmt(aS)+' a Andrea'; short='Ernesto → '+fmt(aS); }
+      else       { cls='sq-and'; txt='Andrea debe '+fmt(aS)+' a Ernesto'; short='Andrea → '+fmt(aS); }
+    }
+    return {tA, tE, dif, aS, cls, txt, short};
+  },
+
+  renderAE() {
+    const s = APP.calcAE();
+    const sq = document.getElementById('aeSQ'); sq.textContent = s.txt; sq.className = 'saldoQuien '+s.cls;
+    document.getElementById('aeTa').textContent = fmt(s.tA);
+    document.getElementById('aeTe').textContent = fmt(s.tE);
+    const de = document.getElementById('aeDif'); de.textContent = fmt(Math.abs(s.dif));
+    de.className = 'statV ' + (Math.abs(s.dif)<0.01 ? 'v-pos' : s.dif>0 ? 'v-er' : 'v-and');
+    document.getElementById('aeAS').textContent = fmt(s.aS);
+    APP.renderFilters('aeFilters', S.aeFilter, v => { S.aeFilter=v; APP.renderAE(); });
+    let arr = Object.entries(S.aeG).sort((a,b) => b[1].ts-a[1].ts);
+    if (S.aeFilter !== 'todos') arr = arr.filter(([,g]) =>
+      S.aeFilter==='Andrea' ? g.persona==='andrea' : S.aeFilter==='Ernesto' ? g.persona==='ernesto' : g.categoria===S.aeFilter);
+    document.getElementById('aeList').innerHTML = arr.length
+      ? arr.map(([id,g]) => APP.itemHTML(id,g,'ae')).join('')
+      : APP.emptyHTML('🧾','Sin gastos'+(S.aeFilter!=='todos'?' con este filtro':' aún.'));
+  },
+
+  renderAEHist() {
+    const arr = Object.entries(S.aeH).sort((a,b) => b[1].ts-a[1].ts);
+    document.getElementById('aeHList').innerHTML = arr.length
+      ? arr.map(([id,h]) => `<div class="hCard" onclick="APP.showAEHD('${id}')">
+          <div class="hFecha">${h.fecha}</div><div class="hTitle">${h.txt}</div>
+          <div class="hDetail">${Object.keys(h.gastos||{}).length} gastos</div>
+          <span class="hBadge">${fmt(h.aS)} saldado</span></div>`).join('')
+      : APP.emptyHTML('📂','Sin historial aún.');
+  },
+
+  showAEHD(hid) {
+    const h = S.aeH[hid]; if (!h) return;
+    document.getElementById('aeHDT').textContent = 'Período saldado';
+    document.getElementById('aeHDS').textContent = h.fecha;
+    const arr = Object.values(h.gastos||{}).sort((a,b) => b.ts-a.ts);
+    document.getElementById('aeHDC').innerHTML = `
+      <div class="saldoPill">
+        <div class="statGrid">
+          <div class="stat"><div class="statL">Andrea</div><div class="statV v-and">${fmt(h.tA)}</div></div>
+          <div class="stat"><div class="statL">Ernesto</div><div class="statV v-er">${fmt(h.tE)}</div></div>
         </div>
-        <div class="gasto-right">
-          <div class="gasto-importe">${fmt(g.importe)}</div>
-          <div class="gasto-split ${g.split==="100%"?"split-100":""}">${g.split}</div>
+        <div class="stat" style="margin-top:8px"><div class="statL">Saldado</div><div class="statV v-pos">${fmt(h.aS)}</div></div>
+      </div>
+      <div class="sec">${arr.length} gastos</div>
+      ${arr.map(g => APP.itemStatic(g)).join('')}`;
+    APP.nav('vAEHD');
+  },
+
+  saldarAE() {
+    const s = APP.calcAE(); const n = Object.keys(S.aeG).length;
+    if (!n) { APP.toast('No hay gastos que saldar','err'); return; }
+    APP.confirm('¿Saldar cuenta?', s.txt+'.\n\n'+n+' gasto(s) pasarán al historial y el saldo vuelve a cero. ¿Seguís?', () => {
+      DB.ref('aeHist').push({fecha:datStr(new Date()),ts:Date.now(),gastos:{...S.aeG},tA:s.tA,tE:s.tE,aS:s.aS,txt:s.txt});
+      DB.ref('aeGastos').set(null);
+      APP.toast('✓ Cuenta A&E saldada','ok');
+    });
+  },
+
+  // CASA
+  calcCasa() {
+    const arr = Object.values(S.casaG);
+    const tA = arr.reduce((s,g) => g.persona==='andrea' ? s+g.importe : s, 0);
+    const tE = arr.reduce((s,g) => g.persona==='ernesto' ? s+g.importe : s, 0);
+    return {tA, tE, total: tA+tE};
+  },
+
+  renderCasa() {
+    const s = APP.calcCasa();
+    document.getElementById('casaTa').textContent = fmt(s.tA);
+    document.getElementById('casaTe').textContent = fmt(s.tE);
+    document.getElementById('casaTotal').textContent = fmt(s.total);
+    APP.renderFilters('casaFilters', S.casaFilter, v => { S.casaFilter=v; APP.renderCasa(); });
+    let arr = Object.entries(S.casaG).sort((a,b) => b[1].ts-a[1].ts);
+    if (S.casaFilter !== 'todos') arr = arr.filter(([,g]) =>
+      S.casaFilter==='Andrea' ? g.persona==='andrea' : S.casaFilter==='Ernesto' ? g.persona==='ernesto' : g.categoria===S.casaFilter);
+    document.getElementById('casaList').innerHTML = arr.length
+      ? arr.map(([id,g]) => APP.itemHTML(id,g,'casa')).join('')
+      : APP.emptyHTML('🏠','Sin adelantos'+(S.casaFilter!=='todos'?' con este filtro':' pendientes.'));
+  },
+
+  renderCasaHist() {
+    const arr = Object.entries(S.casaH).sort((a,b) => b[1].ts-a[1].ts);
+    document.getElementById('casaHList').innerHTML = arr.length
+      ? arr.map(([id,h]) => `<div class="hCard" onclick="APP.showCasaHD('${id}')">
+          <div class="hFecha">${h.fecha}</div>
+          <div class="hTitle">A Andrea: ${fmt(h.tA)} · A Ernesto: ${fmt(h.tE)}</div>
+          <div class="hDetail">${Object.keys(h.gastos||{}).length} adelantos</div>
+          <span class="hBadge">${fmt(h.total)} reembolsado</span></div>`).join('')
+      : APP.emptyHTML('📂','Sin historial aún.');
+  },
+
+  showCasaHD(hid) {
+    const h = S.casaH[hid]; if (!h) return;
+    document.getElementById('casaHDT').textContent = 'Reembolso';
+    document.getElementById('casaHDS').textContent = h.fecha;
+    const arr = Object.values(h.gastos||{}).sort((a,b) => b.ts-a.ts);
+    document.getElementById('casaHDC').innerHTML = `
+      <div class="saldoPill">
+        <div class="statGrid">
+          <div class="stat"><div class="statL">A Andrea</div><div class="statV v-and">${fmt(h.tA)}</div></div>
+          <div class="stat"><div class="statL">A Ernesto</div><div class="statV v-er">${fmt(h.tE)}</div></div>
         </div>
+        <div class="stat" style="margin-top:8px"><div class="statL">Total reembolsado</div><div class="statV v-warn">${fmt(h.total)}</div></div>
+      </div>
+      <div class="sec">${arr.length} adelantos</div>
+      ${arr.map(g => APP.itemStatic(g)).join('')}`;
+    APP.nav('vCasaHD');
+  },
+
+  saldarCasa() {
+    const s = APP.calcCasa(); const n = Object.keys(S.casaG).length;
+    if (!n) { APP.toast('Sin adelantos pendientes','err'); return; }
+    APP.confirm('¿Reembolso realizado?', 'La casa debe '+fmt(s.tA)+' a Andrea y '+fmt(s.tE)+' a Ernesto.\n\n'+n+' adelanto(s) pasarán al historial. ¿Confirmas?', () => {
+      DB.ref('casaHist').push({fecha:datStr(new Date()),ts:Date.now(),gastos:{...S.casaG},tA:s.tA,tE:s.tE,total:s.total});
+      DB.ref('casaGastos').set(null);
+      APP.toast('✓ Reembolso registrado','ok');
+    });
+  },
+
+  // GRUPOS
+  renderGrupos() {
+    const arr = Object.entries(S.grupos).filter(([,g]) => !g.cerrado).sort((a,b) => b[1].ts-a[1].ts);
+    document.getElementById('grpList').innerHTML = arr.length
+      ? arr.map(([id,g]) => {
+          const gasArr = Object.values(g.gastos||{});
+          const total = gasArr.reduce((s,x) => s+x.importe, 0);
+          return `<div class="grpCard" onclick="APP.openGrp('${id}')">
+            <div class="grpEmoji">${g.emoji||'👥'}</div>
+            <div style="flex:1"><div class="grpName">${g.nombre}</div>
+            <div class="grpMembers">${(g.miembros||[]).join(' · ')}</div>
+            <div class="grpSaldo">${fmt(total)} · ${gasArr.length} gastos</div></div>
+            <div style="color:var(--muted);font-size:20px">→</div></div>`;
+        }).join('')
+      : APP.emptyHTML('👥','Sin grupos activos.<br>Crea el primero con +');
+  },
+
+  openGrp(gid) {
+    S.curGrp = gid; APP.renderGrpDetail(gid); APP.nav('vGrpD');
+  },
+
+  renderGrpDetail(gid) {
+    const g = S.grupos[gid]; if (!g) return;
+    document.getElementById('grpDT').textContent = (g.emoji||'👥')+' '+g.nombre;
+    document.getElementById('grpDS').textContent = (g.miembros||[]).join(' · ');
+    const gasArr = Object.entries(g.gastos||{}).sort((a,b) => b[1].ts-a[1].ts);
+    const miembros = g.miembros||[];
+    const totals = {}; miembros.forEach(m => totals[m]=0);
+    gasArr.forEach(([,x]) => { if (totals[x.persona]!==undefined) totals[x.persona]+=x.importe; });
+    const totalG = Object.values(totals).reduce((s,v) => s+v, 0);
+    const perP = miembros.length ? totalG/miembros.length : 0;
+    const rows = miembros.map(m => {
+      const d = totals[m]-perP;
+      const cls = d>0.01?'v-pos':d<-0.01?'v-neg':'v-warn';
+      const lbl = d>0.01?'Recibe '+fmt(d):d<-0.01?'Debe '+fmt(Math.abs(d)):'En paz';
+      return `<div class="mRow"><span class="mRowName">${m}</span><span class="mRowVal ${cls}">${lbl}</span></div>`;
+    }).join('');
+    document.getElementById('grpDSaldo').innerHTML = `
+      <div class="saldoPill">
+        <div class="stat" style="margin-bottom:12px"><div class="statL">Total gastado</div><div class="statV v-pos">${fmt(totalG)}</div></div>
+        ${rows}
+        <button class="btnSaldar" onclick="APP.cerrarGrp('${gid}')">✓ Cerrar grupo</button>
       </div>`;
-    }).join("")}`;
-  showView("viewHistorialDetail");
-};
+    document.getElementById('grpDList').innerHTML = gasArr.length
+      ? gasArr.map(([id,x]) => {
+          const cat = CATS.find(c=>c.id===x.categoria)||{ic:'📦'};
+          return `<div class="item" onclick="APP.editGrpGasto('${gid}','${id}')">
+            <div class="iAv av-grp">${cat.ic}</div>
+            <div class="iInfo"><div class="iTitle">${x.concepto}</div>
+            <div class="iSub">${cat.ic} ${x.categoria} · ${x.fecha}</div>
+            <span class="chip ch-grp">${x.persona}</span></div>
+            <div class="iRight"><div class="iAmt">${fmt(x.importe)}</div><div class="iSplit">pagó</div></div>
+          </div>`;
+        }).join('')
+      : APP.emptyHTML('🧾','Sin gastos aún.');
+  },
 
-// ── MODAL ────────────────────────────────────────────────────
-function buildCatGrid(sel) {
-  document.getElementById("catGrid").innerHTML = CATS.map(c=>
-    `<button class="cat-btn ${c.id===sel?"active":""}" onclick="selectCat('${c.id}')">
-      <span class="cat-icon">${c.icon}</span>${c.id}
-    </button>`).join("");
-}
+  cerrarGrp(gid) {
+    const g = S.grupos[gid];
+    APP.confirm('¿Cerrar grupo?', 'Se archivará "'+g.nombre+'". ¿Confirmas?', () => {
+      DB.ref('grupos/'+gid).update({cerrado:true,fechaCierre:datStr(new Date())});
+      APP.toast('✓ Grupo cerrado','ok'); APP.nav('vGrupos');
+    });
+  },
 
-window.abrirModal = function(id) {
-  const g = id ? gastos[id] : null;
-  editingId  = id || null;
-  fPersona   = g ? g.persona   : "andrea";
-  fSplit     = g ? g.split     : "50%";
-  fCategoria = g ? g.categoria : "Restaurantes";
-  document.getElementById("modalTitle").textContent = g ? "Editar gasto" : "Nuevo gasto";
-  document.getElementById("fImporte").value  = g ? g.importe : "";
-  document.getElementById("fConcepto").value = g ? g.concepto : "";
-  document.getElementById("btnEliminarGasto").style.display = g ? "block" : "none";
-  document.getElementById("btnAnd").className = "persona-btn"+(fPersona==="andrea"?" active-and":"");
-  document.getElementById("btnEr").className  = "persona-btn"+(fPersona==="ernesto"?" active-er":"");
-  document.getElementById("btn50").className  = "split-btn"+(fSplit==="50%"?" active":"");
-  document.getElementById("btn100").className = "split-btn"+(fSplit==="100%"?" active":"");
-  buildCatGrid(fCategoria);
-  document.getElementById("modalGasto").classList.add("open");
-  setTimeout(()=>document.getElementById("fImporte").focus(), 300);
-};
+  editGrpGasto(gid, id) {
+    const g = S.grupos[gid]; if (!g) return;
+    const gasto = (g.gastos||{})[id]; if (!gasto) return;
+    S.gMode='grp'; S.gEditId=id; S.gPersona=gasto.persona; S.gSplit='50%'; S.gCat=gasto.categoria||'Varios';
+    APP.buildGastoModal(g.miembros||['Andrea','Ernesto']);
+    document.getElementById('mImp').value = gasto.importe;
+    document.getElementById('mCon').value = gasto.concepto;
+    document.getElementById('mGastoT').textContent = 'Editar gasto';
+    document.getElementById('mDelBtn').style.display = 'block';
+    document.getElementById('mSplitGrp').style.display = 'none';
+    document.getElementById('mGasto').classList.add('open');
+  },
 
-window.cerrarModal = function() {
-  document.getElementById("modalGasto").classList.remove("open");
-  editingId = null;
-};
+  // MODAL GASTO
+  openGasto(mode, editId) {
+    S.gMode=mode; S.gEditId=editId||null; S.gPersona='andrea'; S.gSplit='50%'; S.gCat='Restaurantes';
+    let members = ['Andrea','Ernesto'];
+    if (mode==='grp' && S.curGrp && S.grupos[S.curGrp]) members = S.grupos[S.curGrp].miembros||members;
+    APP.buildGastoModal(members);
+    document.getElementById('mImp').value = '';
+    document.getElementById('mCon').value = '';
+    document.getElementById('mGastoT').textContent = mode==='casa' ? 'Nuevo adelanto' : editId ? 'Editar gasto' : 'Nuevo gasto';
+    document.getElementById('mDelBtn').style.display = editId ? 'block' : 'none';
+    document.getElementById('mSplitGrp').style.display = (mode==='casa'||mode==='grp') ? 'none' : 'block';
+    document.getElementById('mGasto').classList.add('open');
+    setTimeout(() => document.getElementById('mImp').focus(), 300);
+  },
 
-window.selectPersona = function(p) {
-  fPersona = p;
-  document.getElementById("btnAnd").className = "persona-btn"+(p==="andrea"?" active-and":"");
-  document.getElementById("btnEr").className  = "persona-btn"+(p==="ernesto"?" active-er":"");
-};
-window.selectSplit = function(s) {
-  fSplit = s;
-  document.getElementById("btn50").className  = "split-btn"+(s==="50%"?" active":"");
-  document.getElementById("btn100").className = "split-btn"+(s==="100%"?" active":"");
-};
-window.selectCat = function(c) { fCategoria=c; buildCatGrid(c); };
+  buildGastoModal(members) {
+    document.getElementById('mPersona').innerHTML = members.map(m => {
+      const k = m.toLowerCase();
+      const cls = k===S.gPersona ? ('tBtn '+(k==='andrea'?'t-and':k==='ernesto'?'t-er':'t-on')) : 'tBtn';
+      return `<button class="${cls}" onclick="APP.setPersona('${k}')">${m}</button>`;
+    }).join('');
+    document.getElementById('mCat').innerHTML = CATS.map(c =>
+      `<button class="catBtn ${c.id===S.gCat?'on':''}" onclick="APP.setCat('${c.id}')"><span class="cIcon">${c.ic}</span>${c.id}</button>`
+    ).join('');
+  },
 
-window.guardarGasto = function() {
-  const imp = parseFloat(document.getElementById("fImporte").value);
-  const con = document.getElementById("fConcepto").value.trim();
-  if (!con)              { showToast("Escribe el concepto","err"); return; }
-  if (isNaN(imp)||imp<=0){ showToast("Importe inválido","err"); return; }
-  const now=new Date();
-  const fecha=`${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}`;
-  const data={persona:fPersona,concepto:con,categoria:fCategoria,importe:imp,split:fSplit,fecha,ts:Date.now()};
-  if (editingId) {
-    update(ref(db,`gastos/${editingId}`), data);
-    showToast("Gasto actualizado","ok");
-  } else {
-    push(gastosRef, data);
-    showToast("Gasto añadido","ok");
+  setPersona(p) {
+    S.gPersona = p;
+    document.querySelectorAll('#mPersona .tBtn').forEach(b => {
+      const k = b.textContent.trim().toLowerCase();
+      b.className = 'tBtn ' + (k===p ? (p==='andrea'?'t-and':p==='ernesto'?'t-er':'t-on') : '');
+    });
+  },
+
+  setSplit(s) {
+    S.gSplit = s;
+    document.getElementById('m50').className = 'tBtn '+(s==='50%'?'t-on':'');
+    document.getElementById('m100').className = 'tBtn '+(s==='100%'?'t-on':'');
+  },
+
+  setCat(c) {
+    S.gCat = c;
+    document.querySelectorAll('#mCat .catBtn').forEach(b =>
+      b.classList.toggle('on', b.textContent.trim()===c)
+    );
+  },
+
+  closeGasto() { document.getElementById('mGasto').classList.remove('open'); S.gEditId=null; },
+
+  saveGasto() {
+    const imp = parseFloat(document.getElementById('mImp').value);
+    const con = document.getElementById('mCon').value.trim();
+    if (!con) { APP.toast('Escribe el concepto','err'); return; }
+    if (isNaN(imp)||imp<=0) { APP.toast('Importe inválido','err'); return; }
+    const now = new Date();
+    const data = {persona:S.gPersona,concepto:con,categoria:S.gCat,importe:imp,split:S.gSplit,fecha:pad(now.getDate())+'/'+pad(now.getMonth()+1),ts:Date.now()};
+    if (S.gMode==='ae') {
+      S.gEditId ? DB.ref('aeGastos/'+S.gEditId).update(data) : DB.ref('aeGastos').push(data);
+    } else if (S.gMode==='casa') {
+      data.split='100%';
+      S.gEditId ? DB.ref('casaGastos/'+S.gEditId).update(data) : DB.ref('casaGastos').push(data);
+    } else if (S.gMode==='grp' && S.curGrp) {
+      S.gEditId ? DB.ref('grupos/'+S.curGrp+'/gastos/'+S.gEditId).update(data) : DB.ref('grupos/'+S.curGrp+'/gastos').push(data);
+    }
+    APP.closeGasto();
+    APP.toast(S.gEditId ? 'Gasto actualizado' : 'Gasto añadido','ok');
+  },
+
+  deleteGasto() {
+    APP.confirm('Eliminar gasto','¿Seguro? No se puede deshacer.', () => {
+      if (S.gMode==='ae')   DB.ref('aeGastos/'+S.gEditId).remove();
+      if (S.gMode==='casa') DB.ref('casaGastos/'+S.gEditId).remove();
+      if (S.gMode==='grp' && S.curGrp) DB.ref('grupos/'+S.curGrp+'/gastos/'+S.gEditId).remove();
+      APP.closeGasto(); APP.toast('Eliminado','ok');
+    });
+  },
+
+  // MODAL GRUPO
+  openNuevoGrupo() {
+    S.ngEmoji='✈️'; S.ngMembers=['Andrea','Ernesto'];
+    document.getElementById('ngNom').value='';
+    document.getElementById('ngNew').value='';
+    document.querySelectorAll('#ngEmojis .catBtn').forEach(b => b.classList.toggle('on', b.dataset.e==='✈️'));
+    APP.renderNGParts();
+    document.getElementById('mGrupo').classList.add('open');
+  },
+
+  closeGrupo() { document.getElementById('mGrupo').classList.remove('open'); },
+
+  setEmoji(btn, e) {
+    S.ngEmoji = e;
+    document.querySelectorAll('#ngEmojis .catBtn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+  },
+
+  addMiembro() {
+    const n = document.getElementById('ngNew').value.trim();
+    if (!n || S.ngMembers.includes(n)) return;
+    S.ngMembers.push(n); document.getElementById('ngNew').value=''; APP.renderNGParts();
+  },
+
+  renderNGParts() {
+    document.getElementById('ngParts').innerHTML = S.ngMembers.map((m,i) =>
+      `<div class="mRow"><span class="mRowName">${m}</span>
+      ${i>1 ? `<button onclick="APP.remMiembro(${i})" style="background:none;border:none;color:var(--neg);font-size:20px;cursor:pointer">×</button>`
+             : '<span style="font-size:10px;color:var(--muted)">fijo</span>'}</div>`
+    ).join('');
+  },
+
+  remMiembro(i) { S.ngMembers.splice(i,1); APP.renderNGParts(); },
+
+  crearGrupo() {
+    const n = document.getElementById('ngNom').value.trim();
+    if (!n) { APP.toast('Escribe el nombre del grupo','err'); return; }
+    DB.ref('grupos').push({nombre:n,emoji:S.ngEmoji,miembros:[...S.ngMembers],gastos:{},ts:Date.now()});
+    APP.closeGrupo(); APP.toast('✓ Grupo creado','ok');
+  },
+
+  // CONFIRM
+  confirm(title, msg, cb) {
+    document.getElementById('cfT').textContent = title;
+    document.getElementById('cfM').textContent = msg;
+    document.getElementById('cfY').onclick = () => { APP.closeConfirm(); cb(); };
+    document.getElementById('cfOverlay').classList.add('open');
+  },
+  closeConfirm() { document.getElementById('cfOverlay').classList.remove('open'); },
+
+  borrarTodo() {
+    DB.ref('aeGastos').set(null); DB.ref('aeHist').set(null);
+    DB.ref('casaGastos').set(null); DB.ref('casaHist').set(null);
+    DB.ref('grupos').set(null);
+    APP.nav('vHome'); APP.toast('Datos borrados','ok');
+  },
+
+  // RENDER HELPERS
+  itemHTML(id, g, mode) {
+    const cat = CATS.find(c=>c.id===g.categoria)||{ic:'📦'};
+    const isA = g.persona==='andrea';
+    const avCls = mode==='casa'?'av-casa':(isA?'av-and':'av-er');
+    const chipCls = isA?'ch-and':'ch-er';
+    const pLbl = g.persona.charAt(0).toUpperCase()+g.persona.slice(1);
+    return `<div class="item" onclick="APP.openGasto('${mode}','${id}')">
+      <div class="iAv ${avCls}">${cat.ic}</div>
+      <div class="iInfo"><div class="iTitle">${g.concepto}</div>
+      <div class="iSub">${cat.ic} ${g.categoria} · ${g.fecha}</div>
+      <span class="chip ${chipCls}">${pLbl}</span></div>
+      <div class="iRight"><div class="iAmt">${fmt(g.importe)}</div>
+      <div class="iSplit ${g.split==='100%'?'s100':''}">${g.split}</div></div>
+    </div>`;
+  },
+
+  itemStatic(g) {
+    const cat = CATS.find(c=>c.id===g.categoria)||{ic:'📦'};
+    const isA = g.persona==='andrea';
+    return `<div class="item" style="cursor:default">
+      <div class="iAv ${isA?'av-and':'av-er'}">${cat.ic}</div>
+      <div class="iInfo"><div class="iTitle">${g.concepto}</div>
+      <div class="iSub">${cat.ic} ${g.categoria} · ${g.fecha}</div>
+      <span class="chip ${isA?'ch-and':'ch-er'}">${isA?'Andrea':'Ernesto'}</span></div>
+      <div class="iRight"><div class="iAmt">${fmt(g.importe)}</div>
+      <div class="iSplit ${g.split==='100%'?'s100':''}">${g.split}</div></div>
+    </div>`;
+  },
+
+  renderFilters(id, active, onChange) {
+    const opts = ['todos','Andrea','Ernesto',...CATS.map(c=>c.id)];
+    document.getElementById(id).innerHTML = opts.map(f =>
+      `<button class="fChip ${f===active?'on':''}" onclick="(function(){APP._fCb_${id}('${f}')})()">
+        ${f}</button>`
+    ).join('');
+    APP['_fCb_'+id] = onChange;
+  },
+
+  emptyHTML(icon, msg) {
+    return `<div class="empty"><div class="ei">${icon}</div><p>${msg}</p></div>`;
+  },
+
+  toast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast '+(type||'')+' show';
+    clearTimeout(t._t); t._t = setTimeout(() => { t.className = 'toast '+(type||''); }, 2800);
   }
-  cerrarModal();
 };
 
-window.editarGasto = function(id) { abrirModal(id); };
+// UTILS
+function fmt(n) { return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+'€'; }
+function pad(n) { return String(n).padStart(2,'0'); }
+function datStr(d) { return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); }
 
-window.eliminarGastoActual = function() {
-  abrirConfirm("Eliminar gasto","¿Seguro que quieres eliminar este gasto?",()=>{
-    remove(ref(db,`gastos/${editingId}`));
-    cerrarModal(); showToast("Eliminado","ok");
-  });
-};
-
-// ── SALDAR ───────────────────────────────────────────────────
-window.pedirSaldar = function() {
-  const s = calcSaldo();
-  const n = Object.keys(gastos).length;
-  if (!n) { showToast("No hay gastos que saldar","err"); return; }
-  abrirConfirm("¿Saldar cuenta?",
-    `${s.quienTxt}.\n\n${n} gasto(s) se moverán al historial y el saldo vuelve a cero. ¿Seguís adelante?`,
-    ()=>ejecutarSaldar(s));
-};
-
-function ejecutarSaldar(s) {
-  const now=new Date();
-  const fStr=`${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
-  push(historialRef,{
-    fechaSaldo:fStr, ts:Date.now(),
-    gastos:{...gastos},
-    totalAnd:s.totalAnd, totalEr:s.totalEr,
-    dif:s.dif, aImporte:s.aImporte, quienTxt:s.quienTxt
-  });
-  set(gastosRef, null);
-  showToast("✓ Cuenta saldada","ok");
-}
-
-// ── CONFIRM ──────────────────────────────────────────────────
-function abrirConfirm(title, msg, cb) {
-  document.getElementById("confirmTitle").textContent = title;
-  document.getElementById("confirmMsg").textContent   = msg;
-  document.getElementById("confirmYesBtn").onclick    = ()=>{cerrarConfirm();cb();};
-  document.getElementById("confirmOverlay").classList.add("open");
-}
-window.cerrarConfirm = function() {
-  document.getElementById("confirmOverlay").classList.remove("open");
-};
-window.confirmarBorrarTodo = function() {
-  abrirConfirm("Borrar todos los datos","Esto borrará gastos e historial en todos los dispositivos. ¿Seguro?",()=>{
-    set(gastosRef,null); set(historialRef,null);
-    showView("viewMain"); showToast("Datos borrados","ok");
-  });
-};
-
-// ── HELPERS ──────────────────────────────────────────────────
-function fmt(n) {
-  return Number(n||0).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
-}
-function showToast(msg,type) {
-  const t=document.getElementById("toast");
-  t.textContent=msg; t.className=`toast ${type||""} show`;
-  clearTimeout(t._to); t._to=setTimeout(()=>{t.className="toast "+(type||"");},2800);
-}
-
-// ── PWA ICON ─────────────────────────────────────────────────
+// PWA ICON
 (function(){
-  const c=document.createElement("canvas"); c.width=c.height=180;
-  const ctx=c.getContext("2d");
+  const c=document.createElement('canvas'); c.width=c.height=180;
+  const ctx=c.getContext('2d');
   const g=ctx.createLinearGradient(0,0,180,180);
-  g.addColorStop(0,"#1a1a2e"); g.addColorStop(1,"#0f0f0f");
-  ctx.fillStyle=g;
-  const r=36;
-  ctx.beginPath();
+  g.addColorStop(0,'#7C3AED'); g.addColorStop(1,'#4C1D95');
+  ctx.fillStyle=g; const r=36; ctx.beginPath();
   ctx.moveTo(r,0);ctx.lineTo(180-r,0);ctx.quadraticCurveTo(180,0,180,r);
   ctx.lineTo(180,180-r);ctx.quadraticCurveTo(180,180,180-r,180);
   ctx.lineTo(r,180);ctx.quadraticCurveTo(0,180,0,180-r);
   ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();ctx.fill();
-  ctx.font="100px serif";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText("💸",90,95);
-  const lnk=document.getElementById("appIcon");
-  if(lnk) lnk.href=c.toDataURL("image/png");
+  ctx.font='100px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('💸',90,95);
+  const lnk=document.getElementById('appIcon');
+  if(lnk) lnk.href=c.toDataURL('image/png');
 })();
 
+// START
+APP.init();
 </script>
 </body>
 </html>
