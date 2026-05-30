@@ -112,6 +112,7 @@ body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;posit
 .iRight{text-align:right;flex-shrink:0}
 .iAmt{font-size:14px;font-weight:700}
 .iSplit{font-size:10px;color:var(--muted);margin-top:2px}
+.iSplitDetail{font-size:11px;margin-top:4px;line-height:1.4}
 .s100{color:var(--neg)!important}
 .chip{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-top:3px}
 .ch-and{background:var(--and-dim);color:var(--and)}.ch-er{background:var(--er-dim);color:var(--er)}.ch-grp{background:var(--purple-dim);color:var(--purple-xl)}
@@ -768,36 +769,49 @@ const APP = {
   },
 
   editGrpGasto(gid, id) {
-    const g = S.grupos[gid]; if (!g) return;
-    const gasto = (g.gastos||{})[id]; if (!gasto) return;
-    S.gMode='grp'; S.gEditId=id; S.gPersona=gasto.persona; S.gSplit='50%'; S.gCat=gasto.categoria||'Varios';
-    APP.buildGastoModal(g.miembros||['Andrea','Ernesto']);
-    document.getElementById('mImp').value = gasto.importe;
-    document.getElementById('mCon').value = gasto.concepto;
-    document.getElementById('mGastoT').textContent = 'Editar gasto';
-    document.getElementById('mDelBtn').style.display = 'block';
-    document.getElementById('mSplitGrp').style.display = 'none';
-    document.getElementById('mGasto').classList.add('open');
+    S.curGrp = gid;
+    APP.openGasto('grp', id);
   },
 
   // MODAL GASTO
   openGasto(mode, editId) {
-    S.gMode=mode; S.gEditId=editId||null; S.gPersona='andrea'; S.gSplit='50%'; S.gCat='Restaurantes';
+    S.gMode=mode; S.gEditId=editId||null;
     let members = ['Andrea','Ernesto'];
     if (mode==='grp' && S.curGrp && S.grupos[S.curGrp]) members = S.grupos[S.curGrp].miembros||members;
+
+    // Find existing gasto data if editing
+    let existing = null;
+    if (editId) {
+      if (mode==='ae')   existing = S.aeG[editId];
+      if (mode==='casa') existing = S.casaG[editId];
+      if (mode==='grp' && S.curGrp) existing = (S.grupos[S.curGrp].gastos||{})[editId];
+    }
+
+    // Pre-fill state from existing or defaults
+    S.gPersona   = existing ? existing.persona : 'andrea';
+    S.gSplitMode = existing ? (existing.splitMode||0) : 0;
+    S.gSplitData = existing ? (existing.splitData||null) : null;
+    S.gCat       = existing ? (existing.categoria||'Restaurantes') : 'Restaurantes';
+
     APP.buildGastoModal(members);
-    document.getElementById('mImp').value = '';
-    document.getElementById('mCon').value = '';
-    document.getElementById('mGastoT').textContent = mode==='casa' ? 'Nuevo adelanto' : editId ? 'Editar gasto' : 'Nuevo gasto';
+
+    document.getElementById('mImp').value = existing ? existing.importe : '';
+    document.getElementById('mCon').value = existing ? existing.concepto : '';
+    document.getElementById('mGastoT').textContent = mode==='casa' ? (editId?'Editar adelanto':'Nuevo adelanto') : editId ? 'Editar gasto' : 'Nuevo gasto';
     document.getElementById('mDelBtn').style.display = editId ? 'block' : 'none';
-    const showSplit = true; // always show split
     document.getElementById('mSplitGrp').style.display = 'block';
-    S.gSplitMode = 0; S.gSplitData = null;
-    [0,1,2].forEach(i => document.getElementById('stab'+i).classList.toggle('on', i===0));
+
+    // Set split tabs
+    [0,1,2].forEach(i => document.getElementById('stab'+i).classList.toggle('on', i===S.gSplitMode));
+
     document.getElementById('mGasto').classList.add('open');
-    setTimeout(() => document.getElementById('mImp').focus(), 300);
-    // Rebuild split when importe changes
     document.getElementById('mImp').oninput = () => APP.buildSplitRows();
+
+    // Build split rows after importe is set
+    setTimeout(() => {
+      APP.buildSplitRows();
+      if (!editId) document.getElementById('mImp').focus();
+    }, 80);
   },
 
   buildGastoModal(members) {
@@ -1064,26 +1078,54 @@ const APP = {
     const avCls = mode==='casa'?'av-casa':(isA?'av-and':'av-er');
     const chipCls = isA?'ch-and':'ch-er';
     const pLbl = g.persona.charAt(0).toUpperCase()+g.persona.slice(1);
+    const splitDetail = APP.buildSplitDetail(g);
+    const splitLbl = g.splitMode===2?'monto':g.splitMode===1?'%':'50/50';
     return `<div class="item" onclick="APP.openGasto('${mode}','${id}')">
       <div class="iAv ${avCls}">${cat.ic}</div>
-      <div class="iInfo"><div class="iTitle">${g.concepto}</div>
-      <div class="iSub">${cat.ic} ${g.categoria} · ${g.fecha}</div>
-      <span class="chip ${chipCls}">${pLbl}</span></div>
-      <div class="iRight"><div class="iAmt">${fmt(g.importe)}</div>
-      <div class="iSplit ${g.split==='100%'?'s100':''}">${g.split}</div></div>
+      <div class="iInfo">
+        <div class="iTitle">${g.concepto}</div>
+        <div class="iSub">${g.categoria} · ${g.fecha}</div>
+        <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="chip ${chipCls}" style="font-size:9px;padding:1px 6px">${pLbl} pagó</span>
+          <span style="font-size:10px;color:var(--muted)">${splitLbl}</span>
+        </div>
+        ${splitDetail ? `<div style="font-size:11px;margin-top:4px;color:var(--muted);line-height:1.5">${splitDetail}</div>` : ''}
+      </div>
+      <div class="iRight">
+        <div class="iAmt">${fmt(g.importe)}</div>
+      </div>
     </div>`;
+  },
+
+  buildSplitDetail(g) {
+    if (!g.splitData) return '';
+    const entries = Object.entries(g.splitData);
+    if (!entries.length) return '';
+    return entries.map(([name, fraction]) => {
+      const amt = g.importe * fraction;
+      return `${name}: <strong style="color:var(--text)">${fmt(amt)}</strong>`;
+    }).join(' &nbsp;·&nbsp; ');
   },
 
   itemStatic(g) {
     const cat = CATS.find(c=>c.id===g.categoria)||{ic:'📦'};
     const isA = g.persona==='andrea';
+    const splitDetail = APP.buildSplitDetail(g);
+    const splitLbl = g.splitMode===2?'monto':g.splitMode===1?'%':'50/50';
     return `<div class="item" style="cursor:default">
       <div class="iAv ${isA?'av-and':'av-er'}">${cat.ic}</div>
-      <div class="iInfo"><div class="iTitle">${g.concepto}</div>
-      <div class="iSub">${cat.ic} ${g.categoria} · ${g.fecha}</div>
-      <span class="chip ${isA?'ch-and':'ch-er'}">${isA?'Andrea':'Ernesto'}</span></div>
-      <div class="iRight"><div class="iAmt">${fmt(g.importe)}</div>
-      <div class="iSplit ${g.split==='100%'?'s100':''}">${g.split}</div></div>
+      <div class="iInfo">
+        <div class="iTitle">${g.concepto}</div>
+        <div class="iSub">${g.categoria} · ${g.fecha}</div>
+        <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="chip ${isA?'ch-and':'ch-er'}" style="font-size:9px;padding:1px 6px">${isA?'Andrea':'Ernesto'} pagó</span>
+          <span style="font-size:10px;color:var(--muted)">${splitLbl}</span>
+        </div>
+        ${splitDetail ? `<div style="font-size:11px;margin-top:4px;color:var(--muted);line-height:1.5">${splitDetail}</div>` : ''}
+      </div>
+      <div class="iRight">
+        <div class="iAmt">${fmt(g.importe)}</div>
+      </div>
     </div>`;
   },
 
