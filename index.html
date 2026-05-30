@@ -198,10 +198,19 @@ body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;posit
 .splitTotal.ok{background:rgba(52,211,153,0.1);color:var(--pos)}
 .splitTotal.err{background:rgba(248,113,113,0.1);color:var(--neg)}
 
+
+/* BADGES */
+.badge{position:absolute;top:14px;right:44px;background:#F87171;color:white;font-size:10px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;z-index:2;animation:popIn .2s ease-out}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+
 /* MEMBER ROW */
 .mRow{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:var(--rx);padding:9px 12px;margin-bottom:6px}
 .mRowName{font-size:13px;font-weight:600}
 .mRowVal{font-size:13px;font-weight:700}
+
+/* BADGES */
+.badge{position:absolute;top:14px;right:44px;background:#F87171;color:white;font-size:10px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;z-index:2;animation:popIn .2s ease-out}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -220,21 +229,21 @@ body{font-family:var(--ff);color:var(--text);max-width:430px;margin:0 auto;posit
   </div>
   <div class="scroll">
     <div style="padding:16px 16px 100px">
-      <div class="modCard ae" onclick="APP.nav('vAE')">
+      <div class="modCard ae" onclick="APP.nav('vAE');APP.markSeen('ae')" id="mcAE">
         <div class="mcIcon">⚖️</div>
         <div class="mcTitle">Andrea & Ernesto</div>
         <div class="mcSub">Gastos personales entre vosotros</div>
         <div class="mcSaldo" id="homeAE">—</div>
         <div class="mcArrow">→</div>
       </div>
-      <div class="modCard casa" onclick="APP.nav('vCasa')">
+      <div class="modCard casa" onclick="APP.nav('vCasa');APP.markSeen('casa')" id="mcCasa">
         <div class="mcIcon">🏠</div>
         <div class="mcTitle">Cuenta Casa</div>
         <div class="mcSub">Adelantos del bote común · Santander</div>
         <div class="mcSaldo" id="homeCasa">—</div>
         <div class="mcArrow">→</div>
       </div>
-      <div class="modCard grp" onclick="APP.nav('vGrupos')">
+      <div class="modCard grp" onclick="APP.nav('vGrupos');APP.markSeen('grp')" id="mcGrp">
         <div class="mcIcon">👥</div>
         <div class="mcTitle">Grupos</div>
         <div class="mcSub">Viajes · Amigos · Eventos</div>
@@ -489,6 +498,7 @@ const APP = {
 
   // FIREBASE SETUP
   init() {
+    APP.initBadges();
     DB.ref('aeGastos').on('value', s => { S.aeG = s.val()||{}; APP.renderAE(); APP.renderHome(); }, () => APP.setSync(false));
     DB.ref('aeHist').on('value',   s => { S.aeH = s.val()||{}; APP.renderAEHist(); });
     DB.ref('casaGastos').on('value', s => { S.casaG = s.val()||{}; APP.renderCasa(); APP.renderHome(); }, () => APP.setSync(false));
@@ -506,6 +516,51 @@ const APP = {
     document.getElementById('cfgSt').textContent = ok ? '✓ Firebase conectado · Sincronización en tiempo real' : '✗ Sin conexión';
   },
 
+
+  // BADGES — track new items since last visit
+  initBadges() {
+    const key = 'splitAE_lastSeen';
+    const stored = localStorage.getItem(key);
+    S.lastSeen = stored ? JSON.parse(stored) : { ae: 0, casa: 0, grp: 0 };
+    S.sessionStart = Date.now();
+  },
+
+  updateBadges() {
+    const now = S.lastSeen;
+    // Count items newer than lastSeen for each module
+    const aeNew   = Object.values(S.aeG).filter(g => g.ts > (now.ae||0)).length;
+    const casaNew = Object.values(S.casaG).filter(g => g.ts > (now.casa||0)).length;
+    const grpNew  = Object.values(S.grupos).reduce((total, g) => {
+      return total + Object.values(g.gastos||{}).filter(x => x.ts > (now.grp||0)).length;
+    }, 0);
+
+    APP.setBadge('mcAE',   aeNew);
+    APP.setBadge('mcCasa', casaNew);
+    APP.setBadge('mcGrp',  grpNew);
+  },
+
+  setBadge(cardId, count) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    // Remove existing badge
+    const existing = card.querySelector('.badge');
+    if (existing) existing.remove();
+    if (count > 0) {
+      const b = document.createElement('div');
+      b.className = 'badge';
+      b.textContent = count > 99 ? '99+' : count;
+      card.appendChild(b);
+    }
+  },
+
+  markSeen(module) {
+    // Called when user opens a module — clear its badge
+    const key = 'splitAE_lastSeen';
+    S.lastSeen[module] = Date.now();
+    localStorage.setItem(key, JSON.stringify(S.lastSeen));
+    APP.updateBadges();
+  },
+
   // HOME
   renderHome() {
     const ae = APP.calcAE();
@@ -514,6 +569,7 @@ const APP = {
     document.getElementById('homeCasa').textContent = 'Pendiente: ' + fmt(ca.total);
     const ng = Object.values(S.grupos).filter(g => !g.cerrado).length;
     document.getElementById('homeGrp').textContent = ng ? ng + ' grupo' + (ng>1?'s':'') + ' activo' + (ng>1?'s':'') : 'Sin grupos activos';
+    APP.updateBadges();
   },
 
   // AE
@@ -753,7 +809,7 @@ const APP = {
     // Rebuild split rows when modal is built
     setTimeout(() => APP.buildSplitRows(), 50);
     document.getElementById('mCat').innerHTML = CATS.map(c =>
-      `<button class="catBtn ${c.id===S.gCat?'on':''}" onclick="APP.setCat('${c.id}')"><span class="cIcon">${c.ic}</span>${c.id}</button>`
+      `<button class="catBtn ${c.id===S.gCat?'on':''}" data-cat="${c.id}" onclick="APP.setCat('${c.id}')"><span class="cIcon">${c.ic}</span>${c.id}</button>`
     ).join('');
   },
 
@@ -766,6 +822,8 @@ const APP = {
   },
 
   // SPLIT MODE: 0=50/50, 1=pct, 2=monto
+  // Lógica: "quién pagó" puso el dinero. Split = cuánto consumió cada uno.
+  // Si Andrea consumió 60€ y Ernesto pagó 100€ → Andrea le debe 60€ a Ernesto.
   setSplitMode(mode) {
     S.gSplitMode = mode;
     [0,1,2].forEach(i => {
@@ -780,134 +838,118 @@ const APP = {
     const mode = S.gSplitMode || 0;
     const rowsEl = document.getElementById('splitRows');
     const totalRow = document.getElementById('splitTotalRow');
+    if (!rowsEl) return;
 
     if (mode === 0) {
-      // 50/50 — show info only
-      rowsEl.innerHTML = members.map(m => {
-        const share = members.length > 0 ? imp / members.length : 0;
-        return `<div class="splitRow">
+      // 50/50: each person consumed equally
+      const share = members.length > 0 ? imp / members.length : 0;
+      rowsEl.innerHTML = members.map(m => `
+        <div class="splitRow">
           <div class="splitRowTop">
             <span class="splitRowName">${m}</span>
             <span class="splitRowResult">${fmt(share)}</span>
           </div>
-        </div>`;
-      }).join('');
+        </div>`).join('');
       totalRow.style.display = 'none';
-      // Init equal splits
       S.gSplitData = {};
       members.forEach(m => S.gSplitData[m] = 1/members.length);
+
     } else if (mode === 1) {
-      // By percentage
+      // By % — how much % each person consumed
+      const initPct = Math.round(100/members.length);
       rowsEl.innerHTML = members.map((m,i) => {
-        const pct = S.gSplitData && S.gSplitData[m] !== undefined
-          ? Math.round(S.gSplitData[m]*100)
-          : Math.round(100/members.length);
+        const pct = (S.gSplitData && S.gSplitData[m] !== undefined)
+          ? Math.round(S.gSplitData[m]*100) : initPct;
         const share = imp * pct / 100;
         return `<div class="splitRow">
           <div class="splitRowTop">
-            <span class="splitRowName">${m}</span>
+            <span class="splitRowName">${m} consumió</span>
             <span class="splitRowResult" id="res_${i}">${fmt(share)}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <input class="splitInput" id="pct_${i}" type="number" value="${pct}" min="0" max="100" step="1"
-              oninput="APP.onPctChange(${i})" style="width:80px">
-            <span style="color:var(--muted);font-size:13px">%</span>
+            <input class="splitInput" id="pct_${i}" type="number" value="${pct}"
+              min="0" max="100" step="1" oninput="APP.onPctChange()" style="width:90px">
+            <span style="color:var(--muted);font-size:14px">%</span>
           </div>
         </div>`;
       }).join('');
-      APP.updateSplitTotal(members, 'pct');
       totalRow.style.display = 'flex';
+      APP.onPctChange();
+
     } else {
-      // By amount
+      // By amount — how much each person consumed
+      const initAmt = imp/members.length;
       rowsEl.innerHTML = members.map((m,i) => {
-        const amt = S.gSplitData && S.gSplitData[m] !== undefined
-          ? (S.gSplitData[m] * imp).toFixed(2)
-          : (imp/members.length).toFixed(2);
+        const amt = (S.gSplitData && S.gSplitData[m] !== undefined)
+          ? (S.gSplitData[m]*imp).toFixed(2) : initAmt.toFixed(2);
         return `<div class="splitRow">
           <div class="splitRowTop">
-            <span class="splitRowName">${m}</span>
+            <span class="splitRowName">${m} consumió</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <input class="splitInput" id="amt_${i}" type="number" value="${amt}" min="0" step="0.01"
-              oninput="APP.onAmtChange(${i})">
-            <span style="color:var(--muted);font-size:13px">€</span>
+            <input class="splitInput" id="amt_${i}" type="number" value="${amt}"
+              min="0" step="0.01" oninput="APP.onAmtChange()">
+            <span style="color:var(--muted);font-size:14px">€</span>
           </div>
         </div>`;
       }).join('');
-      APP.updateSplitTotal(members, 'amt');
       totalRow.style.display = 'flex';
+      APP.onAmtChange();
     }
   },
 
   getSplitMembers() {
-    const mode = S.gMode;
-    if (mode === 'grp' && S.curGrp && S.grupos[S.curGrp]) {
+    if (S.gMode==='grp' && S.curGrp && S.grupos[S.curGrp]) {
       return S.grupos[S.curGrp].miembros || ['Andrea','Ernesto'];
     }
     return ['Andrea','Ernesto'];
   },
 
-  onPctChange(idx) {
+  onPctChange() {
     const members = APP.getSplitMembers();
     const imp = parseFloat(document.getElementById('mImp').value) || 0;
     const pcts = members.map((_,i) => parseFloat(document.getElementById('pct_'+i).value)||0);
     const total = pcts.reduce((s,v)=>s+v,0);
-    // Update result labels
     members.forEach((_,i) => {
       const el = document.getElementById('res_'+i);
       if (el) el.textContent = fmt(imp * pcts[i] / 100);
     });
-    // Store as fractions
     S.gSplitData = {};
     members.forEach((m,i) => S.gSplitData[m] = pcts[i]/100);
-    APP.updateSplitTotal(members, 'pct');
+    const totalRow = document.getElementById('splitTotalRow');
+    if (!totalRow) return;
+    const ok = Math.abs(total-100) < 0.5;
+    totalRow.className = 'splitTotal '+(ok?'ok':'err');
+    totalRow.textContent = ok ? '✓ Suma: 100%' : '⚠ Suma: '+total.toFixed(0)+'% (debe ser 100%)';
   },
 
-  onAmtChange(idx) {
+  onAmtChange() {
     const members = APP.getSplitMembers();
     const imp = parseFloat(document.getElementById('mImp').value) || 0;
     const amts = members.map((_,i) => parseFloat(document.getElementById('amt_'+i).value)||0);
-    // Store as fractions
+    const sum = amts.reduce((s,v)=>s+v,0);
     S.gSplitData = {};
-    members.forEach((m,i) => S.gSplitData[m] = imp > 0 ? amts[i]/imp : 0);
-    APP.updateSplitTotal(members, 'amt');
-  },
-
-  updateSplitTotal(members, type) {
-    const imp = parseFloat(document.getElementById('mImp').value) || 0;
+    members.forEach((m,i) => S.gSplitData[m] = imp>0 ? amts[i]/imp : 0);
     const totalRow = document.getElementById('splitTotalRow');
-    let sum = 0;
-    if (type === 'pct') {
-      sum = members.reduce((_,i) => _ + (parseFloat(document.getElementById('pct_'+members.indexOf(members[i]))||0) || 0), 0);
-      // Recalc properly
-      sum = members.map((_,i) => parseFloat(document.getElementById('pct_'+i).value)||0).reduce((a,b)=>a+b,0);
-      const ok = Math.abs(sum-100) < 0.5;
-      totalRow.className = 'splitTotal '+(ok?'ok':'err');
-      totalRow.textContent = ok ? '✓ Suma: 100%' : '⚠ Suma: '+sum.toFixed(0)+'% (debe ser 100%)';
-    } else {
-      sum = members.map((_,i) => parseFloat(document.getElementById('amt_'+i).value)||0).reduce((a,b)=>a+b,0);
-      const ok = Math.abs(sum-imp) < 0.01;
-      totalRow.className = 'splitTotal '+(ok?'ok':'err');
-      totalRow.textContent = ok ? '✓ Suma: '+fmt(sum) : '⚠ Suma: '+fmt(sum)+' de '+fmt(imp);
-    }
+    if (!totalRow) return;
+    const ok = Math.abs(sum-imp) < 0.01;
+    totalRow.className = 'splitTotal '+(ok?'ok':'err');
+    totalRow.textContent = ok
+      ? '✓ Suma: '+fmt(sum)
+      : '⚠ Suma: '+fmt(sum)+' de '+fmt(imp)+' (faltan '+fmt(imp-sum)+')';
   },
 
   getSplitDataForSave() {
-    // Returns {persona: fraction} for all members
     const members = APP.getSplitMembers();
-    const mode = S.gSplitMode || 0;
-    if (mode === 0) {
-      const data = {};
-      members.forEach(m => data[m] = 1/members.length);
-      return data;
+    if (!S.gSplitData) {
+      const d = {}; members.forEach(m => d[m]=1/members.length); return d;
     }
-    return S.gSplitData || (() => { const d={}; members.forEach(m=>d[m]=1/members.length); return d; })();
+    return S.gSplitData;
   },
-
   setCat(c) {
     S.gCat = c;
     document.querySelectorAll('#mCat .catBtn').forEach(b =>
-      b.classList.toggle('on', b.textContent.trim()===c)
+      b.classList.toggle('on', b.dataset.cat===c)
     );
   },
 
@@ -935,6 +977,7 @@ const APP = {
     let splitLabel = '50/50';
     if (S.gSplitMode === 1) splitLabel = 'por %';
     if (S.gSplitMode === 2) splitLabel = 'por monto';
+    // splitData stores fraction each person CONSUMED
     const data = {persona:S.gPersona,concepto:con,categoria:S.gCat,importe:imp,split:splitLabel,splitMode:S.gSplitMode,splitData,fecha:pad(now.getDate())+'/'+pad(now.getMonth()+1),ts:Date.now()};
     if (S.gMode==='ae') {
       S.gEditId ? DB.ref('aeGastos/'+S.gEditId).update(data) : DB.ref('aeGastos').push(data);
